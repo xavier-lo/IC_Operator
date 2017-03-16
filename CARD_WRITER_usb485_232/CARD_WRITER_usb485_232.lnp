@@ -1,0 +1,6 @@
+"CARD_WRITER_usb485_232.obj",
+"STC_INIT.obj",
+"STC_ISR.obj",
+"STC_USER.obj" 
+TO "CARD_WRITER_usb485_232" 
+RAMSIZE(256) 
