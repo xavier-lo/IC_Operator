@@ -1,4 +1,4 @@
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 1   
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 1   
 
 
 C51 COMPILER V9.00, COMPILATION OF MODULE STC_USER
@@ -30,1335 +30,1453 @@ line level    source
   21          unsigned char xdata send_data[30];
   22          volatile unsigned char xdata send_pc_data[50];
   23          volatile unsigned char send_pc_count=0;
-  24          /***/
-  25          
-  26          /*****定义局部位变量*****/
-  27          
-  28          volatile unsigned char xdata received_CARDHEAD_data[28];//接收卡头数据成功
-  29          volatile unsigned char receive_cardhead_start=0;//接收卡头数据开始  
-  30          
-  31          volatile unsigned char receive_cardhead_success=0;//接收卡头数据成功标志  
-  32          volatile unsigned char receive_card_state=0x00;//接收卡数据状态
-  33          /***/
-  34          
+  24          volatile bit is_batch=0;//批量处理标志  
+  25          /***/
+  26          
+  27          /*****定义局部位变量*****/
+  28          
+  29          volatile unsigned char xdata received_CARDHEAD_data[28];//接收卡头数据成功
+  30          volatile unsigned char receive_cardhead_start=0;//接收卡头数据开始  
+  31          
+  32          volatile unsigned char receive_cardhead_success=0;//接收卡头数据成功标志  
+  33          volatile unsigned char receive_card_state=0x00;//接收卡数据状态
+  34          /***/
   35          
-  36          /*全局变量定义*/
-  37          extern unsigned char xdata received_PC_data[48];//接收来自PC数据  
-  38          extern unsigned char xdata receive_PC_data[50];//接收来自PC数据  
-  39          extern bit time_200ms_ready;
-  40          extern unsigned char xdata receive_CARDHEAD_data[30];//接受来自卡头数据 
-  41          extern bit receive_pc_success;//接收PC数据成功标志  
-  42          /**/
-  43          
-  44          //******************************//
-  45          //name:action
-  46          //discription:执行函数
-  47          //in:
-  48          //out:
-  49          void action(void)
-  50          {
-  51   1        if(receive_pc_success)
-  52   1        {
-  53   2          receive_pc_success=0;
-  54   2          switch(received_PC_data[1])
-  55   2          {
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 2   
+  36          
+  37          /*全局变量定义*/
+  38          extern unsigned char xdata received_PC_data[48];//接收来自PC数据  
+  39          extern unsigned char xdata receive_PC_data[50];//接收来自PC数据  
+  40          extern bit time_200ms_ready;
+  41          extern unsigned char xdata receive_CARDHEAD_data[30];//接受来自卡头数据 
+  42          extern bit receive_pc_success;//接收PC数据成功标志  
+  43          /**/
+  44          
+  45          //******************************//
+  46          //name:action
+  47          //discription:执行函数
+  48          //in:
+  49          //out:
+  50          void action(void)
+  51          {
+  52   1        char ii=0;
+  53   1        unsigned char last_serial[4];
+  54   1        if(receive_pc_success)
+  55   1        {
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 2   
 
-  56   3            case 0x00:  Seek_Card();
-  57   3                break;  
-  58   3            case 0x02:  Read_2block_Card_nopass(received_PC_data[2]);
-  59   3                break;
-  60   3            case 0x12:  Write_2block_Card_nopass(received_PC_data[2],&received_PC_data);
-  61   3                break;
-  62   3            case 0x05:  Change_Password(received_PC_data[2],&received_PC_data);
-  63   3                break;
-  64   3            case 0x22:  Change_CardHead_Password(&received_PC_data);
-  65   3                break;
-  66   3            case 0x03:  Read_1block_Card_havepass(received_PC_data[2],&received_PC_data);
-  67   3                break;  
-  68   3            case 0x04:  Write_1block_Card_havepass(received_PC_data[2],&received_PC_data);
-  69   3                break;
-  70   3            case 0x01:  Read_1block_Card_nopass(received_PC_data[2]);
-  71   3                break;
-  72   3            case 0x11:  Write_1block_Card_nopass(received_PC_data[2],&received_PC_data);
-  73   3                break;
-  74   3            case 0x06:
-  75   3                break;
-  76   3            default:  break;
-  77   3          }
-  78   2          /*
-  79   2          if(received_PC_data[1]==0x00)
-  80   2          {
-  81   2            Seek_Card();
-  82   2          }else if(received_PC_data[1]==0x02)
-  83   2          {
-  84   2            Read_2block_Card_nopass(received_PC_data[2]);
-  85   2          }else if(received_PC_data[1]==0x12)
-  86   2          {
-  87   2            Write_2block_Card_nopass(received_PC_data[2],&received_PC_data);
-  88   2          }else if(received_PC_data[1]==0x05)
-  89   2          {
-  90   2              Change_Password(received_PC_data[2],&received_PC_data);
-  91   2          }else if(received_PC_data[1]==0x22)
-  92   2          {
-  93   2              Change_CardHead_Password(&received_PC_data);
-  94   2          }else if(received_PC_data[1]==0x03)
-  95   2          {
-  96   2              Read_1block_Card_havepass(received_PC_data[2],&received_PC_data);
-  97   2          }else if(received_PC_data[1]==0x04)
-  98   2          {
-  99   2              Write_1block_Card_havepass(received_PC_data[2],&received_PC_data);
- 100   2          }else if(received_PC_data[1]==0x01)
- 101   2          {
- 102   2              Read_1block_Card_nopass(received_PC_data[2]);
- 103   2          }else if(received_PC_data[1]==0x11)
- 104   2          {
- 105   2              Write_1block_Card_nopass(received_PC_data[2],&received_PC_data);
- 106   2          }
- 107   2      */
- 108   2        }
- 109   1      
- 110   1      }
- 111          //***//
- 112          //******************************//
- 113          //name:init
- 114          //discription:初始化函数
- 115          //in:
- 116          //out:
- 117          void init(void)
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 3   
+  56   2          receive_pc_success=0;
+  57   2          switch(received_PC_data[1])
+  58   2          {
+  59   3            case 0x00:  
+  60   3                Seek_Card();
+  61   3                send_to_pc(&send_pc_data);  
+  62   3                break;  
+  63   3            case 0x02:  
+  64   3                Read_2block_Card_nopass(received_PC_data[2]);
+  65   3                send_to_pc(&send_pc_data);  
+  66   3                break;
+  67   3            case 0x12:  
+  68   3                Write_2block_Card_nopass(received_PC_data[2],&received_PC_data);
+  69   3                send_to_pc(&send_pc_data);  
+  70   3                break;
+  71   3            case 0x05:  
+  72   3                Change_Password(received_PC_data[2],&received_PC_data);
+  73   3                send_to_pc(&send_pc_data);  
+  74   3                break;
+  75   3            case 0x22:  
+  76   3                Change_CardHead_Password(&received_PC_data);
+  77   3                send_to_pc(&send_pc_data);  
+  78   3                break;
+  79   3            case 0x03:  
+  80   3                Read_1block_Card_havepass(received_PC_data[2],&received_PC_data);
+  81   3                send_to_pc(&send_pc_data);  
+  82   3                break;  
+  83   3            case 0x04:  
+  84   3                Write_1block_Card_havepass(received_PC_data[2],&received_PC_data);
+  85   3                send_to_pc(&send_pc_data);  
+  86   3                break;
+  87   3            case 0x01:  
+  88   3                Read_1block_Card_nopass(received_PC_data[2]);
+  89   3                send_to_pc(&send_pc_data);  
+  90   3                break;
+  91   3            case 0x11:  
+  92   3                Write_1block_Card_nopass(received_PC_data[2],&received_PC_data);
+  93   3                send_to_pc(&send_pc_data);  
+  94   3                break;
+  95   3            case 0x06:          
+  96   3                is_batch=1;
+  97   3                while(is_batch)
+  98   3                {
+  99   4                    Seek_Card();
+ 100   4                    ii=0;
+ 101   4                    while(ii<4)
+ 102   4                    {
+ 103   5                        if(last_serial[ii]==send_pc_data[ii+4]) ii++;
+ 104   5                        else break;
+ 105   5                    }
+ 106   4                    if(ii!=4)
+ 107   4                    {
+ 108   5                        ii=0;
+ 109   5                        while(ii<4)
+ 110   5                        {
+ 111   6                            last_serial[ii]=send_pc_data[ii+4];
+ 112   6                            ii++;
+ 113   6                        }               
+ 114   5                        Batch_Write_Card(received_PC_data[2],&received_PC_data,&last_serial);
+ 115   5                        send_to_pc(&send_pc_data);                
+ 116   5                    }
+ 117   4                } 
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 3   
 
- 118          {
- 119   1        init_uart(UART_1,MOD1,BTR_TM1,NOSMOD,BTR_19200);
- 120   1        init_uart(UART_2,MOD1,BTR_BTR,NOSMOD,BTR_19200);
- 121   1        init_time(TIME_0,WIDE16,t_20ms);
- 122   1        
- 123   1      }
- 124          //***//
- 125          //***//
- 126          
- 127          
- 128          //******************************//
- 129          //name:PC_SeekCard
- 130          //discription:寻卡
- 131          //in:
- 132          //out:
- 133          void Seek_Card(void)
- 134          {
- 135   1            cardhead_seek();
- 136   1            receive_card_state=0;     
- 137   1            while(receive_card_state==0x00);
- 138   1            if(received_CARDHEAD_data[1]==0x20) 
- 139   1            {
- 140   2                char i=0;
- 141   2                send_pc_data[0]=0xbe;
- 142   2                send_pc_data[1]=0x08;
- 143   2                send_pc_data[2]=0x00;
- 144   2                send_pc_data[3]=0x00;
- 145   2                while(i<4)
- 146   2                {
- 147   3                    send_pc_data[4+i]=received_CARDHEAD_data[2+i];
- 148   3                    i++;
- 149   3                }
- 150   2                i=2;
- 151   2                send_pc_data[8]=send_pc_data[1];
- 152   2                while(i<8)
- 153   2                send_pc_data[8]^=send_pc_data[i++];
- 154   2                send_pc_data[9]=0xe0; 
- 155   2      //          REN=0;
- 156   2      //          send_pc_count=0;
- 157   2      //          SBUF=send_pc_data[send_pc_count++];
- 158   2                LED1=1;
- 159   2                send_to_pc(&send_pc_data);          
- 160   2            }
- 161   1              else if(received_CARDHEAD_data[1]==0xdf)  
- 162   1            {
- 163   2                char i=0;
- 164   2                send_pc_data[0]=0xbe;
- 165   2                send_pc_data[1]=0x08;
- 166   2                send_pc_data[2]=0x80;
- 167   2                send_pc_data[3]=0x00;
- 168   2                while(i<4)
- 169   2                {
- 170   3                    send_pc_data[4+i]=00;
- 171   3                    i++;
- 172   3                }
- 173   2                i=2;
- 174   2                send_pc_data[8]=send_pc_data[1];
- 175   2                while(i<8)
- 176   2                send_pc_data[8]^=send_pc_data[i++];
- 177   2                send_pc_data[9]=0xe0; 
- 178   2      //          REN=0;
- 179   2      //          send_pc_count=0;
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 4   
+ 118   3                send_pc_data[0]=0xbe;
+ 119   3                send_pc_data[1]=0x04;
+ 120   3                send_pc_data[2]=0x07;
+ 121   3                send_pc_data[3]=0x00;
+ 122   3                send_pc_data[4]=0x03;
+ 123   3                send_pc_data[5]=0xe0;
+ 124   3                send_to_pc(&send_pc_data);
+ 125   3                break;
+ 126   3            default:  break;
+ 127   3          }
+ 128   2          /*
+ 129   2          if(received_PC_data[1]==0x00)
+ 130   2          {
+ 131   2            Seek_Card();
+ 132   2          }else if(received_PC_data[1]==0x02)
+ 133   2          {
+ 134   2            Read_2block_Card_nopass(received_PC_data[2]);
+ 135   2          }else if(received_PC_data[1]==0x12)
+ 136   2          {
+ 137   2            Write_2block_Card_nopass(received_PC_data[2],&received_PC_data);
+ 138   2          }else if(received_PC_data[1]==0x05)
+ 139   2          {
+ 140   2              Change_Password(received_PC_data[2],&received_PC_data);
+ 141   2          }else if(received_PC_data[1]==0x22)
+ 142   2          {
+ 143   2              Change_CardHead_Password(&received_PC_data);
+ 144   2          }else if(received_PC_data[1]==0x03)
+ 145   2          {
+ 146   2              Read_1block_Card_havepass(received_PC_data[2],&received_PC_data);
+ 147   2          }else if(received_PC_data[1]==0x04)
+ 148   2          {
+ 149   2              Write_1block_Card_havepass(received_PC_data[2],&received_PC_data);
+ 150   2          }else if(received_PC_data[1]==0x01)
+ 151   2          {
+ 152   2              Read_1block_Card_nopass(received_PC_data[2]);
+ 153   2          }else if(received_PC_data[1]==0x11)
+ 154   2          {
+ 155   2              Write_1block_Card_nopass(received_PC_data[2],&received_PC_data);
+ 156   2          }
+ 157   2      */
+ 158   2        }
+ 159   1      
+ 160   1      }
+ 161          //***//
+ 162          //******************************//
+ 163          //name:init
+ 164          //discription:初始化函数
+ 165          //in:
+ 166          //out:
+ 167          void init(void)
+ 168          {
+ 169   1        init_uart(UART_1,MOD1,BTR_TM1,NOSMOD,BTR_19200);
+ 170   1        init_uart(UART_2,MOD1,BTR_BTR,NOSMOD,BTR_19200);
+ 171   1        init_time(TIME_0,WIDE16,t_20ms);
+ 172   1        
+ 173   1      }
+ 174          //***//
+ 175          //***//
+ 176          
+ 177          
+ 178          //******************************//
+ 179          //name:PC_SeekCard
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 4   
 
- 180   2      //          SBUF=send_pc_data[send_pc_count++];
- 181   2                LED1=0;
- 182   2                send_to_pc(&send_pc_data);          
- 183   2            }     
- 184   1      }
- 185          //***//
- 186          
- 187          
- 188          
- 189          
- 190          //******************************//
- 191          //name:Read_1block_Card_nopass
- 192          //discription:读1块数据 A密地址
- 193          //in:
- 194          //out:
- 195          void Read_1block_Card_nopass(unsigned char block)
- 196          {
- 197   1            char i=0;
- 198   1            cardhead_seek();
- 199   1            receive_card_state=0;     
- 200   1            while(receive_card_state==0x00);
- 201   1            if(received_CARDHEAD_data[1]==0x20) 
- 202   1            { 
- 203   2              cardhead_read(block); 
- 204   2              receive_card_state=0;   
- 205   2              while(receive_card_state==0x00);
- 206   2              if(received_CARDHEAD_data[1]==0x21) 
- 207   2              {
- 208   3                  send_pc_data[0]=0xbe;
- 209   3                  send_pc_data[1]=0x14;
- 210   3                  send_pc_data[2]=0x01;
- 211   3                  send_pc_data[3]=block;
- 212   3                  i=0;
- 213   3                  while(i<16)
- 214   3                  {
- 215   4                      send_pc_data[4+i]=received_CARDHEAD_data[2+i];
- 216   4                      i++;
- 217   4                  }
- 218   3                  i=2;
- 219   3                  send_pc_data[20]=send_pc_data[1];
- 220   3                  while(i<20)
- 221   3                  send_pc_data[20]^=send_pc_data[i++];
- 222   3                  send_pc_data[21]=0xe0;  
- 223   3      //                REN=0;
- 224   3      //                send_pc_count=0;
- 225   3      //                SBUF=send_pc_data[send_pc_count++];
- 226   3                  LED1=1;
- 227   3                  send_to_pc(&send_pc_data);
- 228   3                  return;               
- 229   3      
- 230   3              }
- 231   2                send_pc_data[0]=0xbe;
- 232   2                send_pc_data[1]=0x14;
- 233   2                send_pc_data[2]=0x81;
- 234   2                send_pc_data[3]=block;
- 235   2                i=0;
- 236   2                while(i<16)
- 237   2                {
- 238   3                    send_pc_data[4+i]=0;
- 239   3                    i++;
- 240   3                }
- 241   2                i=2;
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 5   
+ 180          //discription:寻卡
+ 181          //in:
+ 182          //out:
+ 183          void Seek_Card(void)
+ 184          {
+ 185   1            cardhead_seek();
+ 186   1            receive_card_state=0;     
+ 187   1            while(receive_card_state==0x00);
+ 188   1            if(received_CARDHEAD_data[1]==0x20) 
+ 189   1            {
+ 190   2                char i=0;
+ 191   2                send_pc_data[0]=0xbe;
+ 192   2                send_pc_data[1]=0x08;
+ 193   2                send_pc_data[2]=0x00;
+ 194   2                send_pc_data[3]=0x00;
+ 195   2                while(i<4)
+ 196   2                {
+ 197   3                    send_pc_data[4+i]=received_CARDHEAD_data[2+i];
+ 198   3                    i++;
+ 199   3                }
+ 200   2                i=2;
+ 201   2                send_pc_data[8]=send_pc_data[1];
+ 202   2                while(i<8)
+ 203   2                send_pc_data[8]^=send_pc_data[i++];
+ 204   2                send_pc_data[9]=0xe0; 
+ 205   2      //          REN=0;
+ 206   2      //          send_pc_count=0;
+ 207   2      //          SBUF=send_pc_data[send_pc_count++];
+ 208   2                LED1=1;
+ 209   2                //send_to_pc(&send_pc_data);          
+ 210   2            }
+ 211   1              else if(received_CARDHEAD_data[1]==0xdf)  
+ 212   1            {
+ 213   2                char i=0;
+ 214   2                send_pc_data[0]=0xbe;
+ 215   2                send_pc_data[1]=0x08;
+ 216   2                send_pc_data[2]=0x80;
+ 217   2                send_pc_data[3]=0x00;
+ 218   2                while(i<4)
+ 219   2                {
+ 220   3                    send_pc_data[4+i]=00;
+ 221   3                    i++;
+ 222   3                }
+ 223   2                i=2;
+ 224   2                send_pc_data[8]=send_pc_data[1];
+ 225   2                while(i<8)
+ 226   2                send_pc_data[8]^=send_pc_data[i++];
+ 227   2                send_pc_data[9]=0xe0; 
+ 228   2      //          REN=0;
+ 229   2      //          send_pc_count=0;
+ 230   2      //          SBUF=send_pc_data[send_pc_count++];
+ 231   2                LED1=0;
+ 232   2                //send_to_pc(&send_pc_data);          
+ 233   2            }     
+ 234   1      }
+ 235          //***//
+ 236          
+ 237          
+ 238          //******************************//
+ 239          //name:Batch_Write_Card
+ 240          //discription:批量写卡 A密
+ 241          //in:
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 5   
 
- 242   2                send_pc_data[20]=send_pc_data[1];
- 243   2                while(i<20)
- 244   2                send_pc_data[20]^=send_pc_data[i++];
- 245   2                send_pc_data[21]=0xe0;
- 246   2      //          REN=0;
- 247   2      //          send_pc_count=0;
- 248   2      //          SBUF=send_pc_data[send_pc_count++];
- 249   2                LED1=0;     
- 250   2                send_to_pc(&send_pc_data);          
- 251   2            }
- 252   1              else if(received_CARDHEAD_data[1]==0xdf)  
- 253   1            {         
- 254   2                send_pc_data[0]=0xbe;
- 255   2                send_pc_data[1]=0x14;
- 256   2                send_pc_data[2]=0x81;
- 257   2                send_pc_data[3]=block;
- 258   2                i=0;
- 259   2                while(i<16)
- 260   2                {
- 261   3                    send_pc_data[4+i]=0;
- 262   3                    i++;
- 263   3                }
- 264   2                i=2;
- 265   2                send_pc_data[20]=send_pc_data[1];
- 266   2                while(i<20)
- 267   2                send_pc_data[20]^=send_pc_data[i++];
- 268   2                send_pc_data[21]=0xe0;
- 269   2      //          REN=0;
- 270   2      //          send_pc_count=0;
- 271   2      //          SBUF=send_pc_data[send_pc_count++];
- 272   2                LED1=0;
- 273   2                send_to_pc(&send_pc_data);
- 274   2            } 
- 275   1      }
- 276          //***//
- 277          
- 278          //******************************//
- 279          //name:Write_1block_Card_nopass
- 280          //discription:写一块数据 A密地址
- 281          //in:
- 282          //out:
- 283          void Write_1block_Card_nopass(unsigned char block,unsigned char *indata0)
- 284          {
- 285   1            char i=0;
- 286   1            unsigned char in[16];
- 287   1            cardhead_seek();
- 288   1            receive_card_state=0;     
- 289   1            while(receive_card_state==0x00);
- 290   1            if(received_CARDHEAD_data[1]==0x20) 
- 291   1            { 
- 292   2              i=0;
- 293   2              while(i<16)
- 294   2              {
- 295   3                  in[i]=indata0[3+i];
- 296   3                  i++;
- 297   3              }         
- 298   2              cardhead_write(block,&in);  
- 299   2              receive_card_state=0;   
- 300   2              while(receive_card_state==0x00);
- 301   2              if(received_CARDHEAD_data[1]==0x22) 
- 302   2              {
- 303   3                  cardhead_read(block); 
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 6   
+ 242          //out:
+ 243          void Batch_Write_Card(unsigned char block,unsigned char *indata1,unsigned char *last_serial)
+ 244          {
+ 245   1          unsigned char indata2[35];
+ 246   1          unsigned char i=0;
+ 247   1          while(i<12)
+ 248   1          {
+ 249   2              indata2[i+3]=indata1[35+i];
+ 250   2              i++;
+ 251   2          }
+ 252   1          Change_Password(block+2,&indata2);
+ 253   1          if(send_pc_data[2]==0x05)
+ 254   1          {
+ 255   2              i=0;
+ 256   2              while(i<35)
+ 257   2              {
+ 258   3                  indata2[i]=indata1[i];
+ 259   3                  i++;
+ 260   3              }
+ 261   2              Write_2block_Card_nopass(block,&indata2);
+ 262   2              if(send_pc_data[2]==0x12)
+ 263   2              {
+ 264   3                  i=0;
+ 265   3                  send_pc_data[0]=0xbe;
+ 266   3                  send_pc_data[1]=0x08;
+ 267   3                  send_pc_data[2]=0x06;
+ 268   3                  send_pc_data[3]=block;
+ 269   3                  while(i<4)
+ 270   3                  {
+ 271   4                      send_pc_data[4+i]=last_serial[i];
+ 272   4                      i++;
+ 273   4                  }
+ 274   3                  i=2;
+ 275   3                  send_pc_data[8]=send_pc_data[1];
+ 276   3                  while(i<8)
+ 277   3                  send_pc_data[8]^=send_pc_data[i++];
+ 278   3                  send_pc_data[9]=0xe0;     
+ 279   3                  LED1=1; 
+ 280   3                  return;
+ 281   3              }
+ 282   2          }
+ 283   1          i=0;
+ 284   1          send_pc_data[0]=0xbe;
+ 285   1          send_pc_data[1]=0x08;
+ 286   1          send_pc_data[2]=0x86;
+ 287   1          send_pc_data[3]=block;
+ 288   1          while(i<4)
+ 289   1          {
+ 290   2              send_pc_data[4+i]=00;
+ 291   2              i++;
+ 292   2          }
+ 293   1          i=2;
+ 294   1          send_pc_data[8]=send_pc_data[1];
+ 295   1          while(i<8)
+ 296   1          send_pc_data[8]^=send_pc_data[i++];
+ 297   1          send_pc_data[9]=0xe0;     
+ 298   1          LED1=0;
+ 299   1      }
+ 300          //***//
+ 301          
+ 302          
+ 303          
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 6   
 
- 304   3                  receive_card_state=0;   
- 305   3                  while(receive_card_state==0x00);
- 306   3                  if(received_CARDHEAD_data[1]==0x21) 
- 307   3                  {
- 308   4                      send_pc_data[0]=0xbe;
- 309   4                      send_pc_data[1]=0x14;
- 310   4                      send_pc_data[2]=0x11;
- 311   4                      send_pc_data[3]=block;
- 312   4                      i=0;
- 313   4                      while(i<16)
- 314   4                      {
- 315   5                          send_pc_data[4+i]=received_CARDHEAD_data[2+i];
- 316   5                          i++;
- 317   5                      }
- 318   4                      i=2;
- 319   4                      send_pc_data[20]=send_pc_data[1];
- 320   4                      while(i<20)
- 321   4                        send_pc_data[20]^=send_pc_data[i++];
- 322   4                      send_pc_data[21]=0xe0;  
- 323   4                      i=0;
- 324   4                      while(i<16)
- 325   4                      {
- 326   5                          if(in[i]==send_pc_data[4+i]) i++;
- 327   5                          else break;
- 328   5                      }
- 329   4                      if(i==16)
- 330   4                      {
- 331   5          //                REN=0;
- 332   5          //                send_pc_count=0;
- 333   5          //                SBUF=send_pc_data[send_pc_count++];
- 334   5                          LED1=1;
- 335   5                          send_to_pc(&send_pc_data);
- 336   5                          return;                 
- 337   5                      }                 
- 338   4                  }
- 339   3              }
- 340   2                send_pc_data[0]=0xbe;
- 341   2                send_pc_data[1]=0x14;
- 342   2                send_pc_data[2]=0x91;
- 343   2                send_pc_data[3]=block;
- 344   2                i=0;
- 345   2                while(i<16)
- 346   2                {
- 347   3                    send_pc_data[4+i]=0;
- 348   3                    i++;
- 349   3                }
- 350   2                i=2;
- 351   2                send_pc_data[20]=send_pc_data[1];
- 352   2                while(i<20)
- 353   2                send_pc_data[20]^=send_pc_data[i++];
- 354   2                send_pc_data[21]=0xe0;
- 355   2      //          REN=0;
- 356   2      //          send_pc_count=0;
- 357   2      //          SBUF=send_pc_data[send_pc_count++];
- 358   2                LED1=0;     
- 359   2                send_to_pc(&send_pc_data);          
- 360   2            }
- 361   1              else if(received_CARDHEAD_data[1]==0xdf)  
- 362   1            {         
- 363   2                send_pc_data[0]=0xbe;
- 364   2                send_pc_data[1]=0x14;
- 365   2                send_pc_data[2]=0x91;
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 7   
+ 304          //******************************//
+ 305          //name:Read_1block_Card_nopass
+ 306          //discription:读1块数据 A密地址
+ 307          //in:
+ 308          //out:
+ 309          void Read_1block_Card_nopass(unsigned char block)
+ 310          {
+ 311   1            char i=0;
+ 312   1            cardhead_seek();
+ 313   1            receive_card_state=0;     
+ 314   1            while(receive_card_state==0x00);
+ 315   1            if(received_CARDHEAD_data[1]==0x20) 
+ 316   1            { 
+ 317   2              cardhead_read(block); 
+ 318   2              receive_card_state=0;   
+ 319   2              while(receive_card_state==0x00);
+ 320   2              if(received_CARDHEAD_data[1]==0x21) 
+ 321   2              {
+ 322   3                  send_pc_data[0]=0xbe;
+ 323   3                  send_pc_data[1]=0x14;
+ 324   3                  send_pc_data[2]=0x01;
+ 325   3                  send_pc_data[3]=block;
+ 326   3                  i=0;
+ 327   3                  while(i<16)
+ 328   3                  {
+ 329   4                      send_pc_data[4+i]=received_CARDHEAD_data[2+i];
+ 330   4                      i++;
+ 331   4                  }
+ 332   3                  i=2;
+ 333   3                  send_pc_data[20]=send_pc_data[1];
+ 334   3                  while(i<20)
+ 335   3                  send_pc_data[20]^=send_pc_data[i++];
+ 336   3                  send_pc_data[21]=0xe0;  
+ 337   3      //                REN=0;
+ 338   3      //                send_pc_count=0;
+ 339   3      //                SBUF=send_pc_data[send_pc_count++];
+ 340   3                  LED1=1;
+ 341   3      //            send_to_pc(&send_pc_data);
+ 342   3                  return;               
+ 343   3      
+ 344   3              }
+ 345   2                send_pc_data[0]=0xbe;
+ 346   2                send_pc_data[1]=0x14;
+ 347   2                send_pc_data[2]=0x81;
+ 348   2                send_pc_data[3]=block;
+ 349   2                i=0;
+ 350   2                while(i<16)
+ 351   2                {
+ 352   3                    send_pc_data[4+i]=0;
+ 353   3                    i++;
+ 354   3                }
+ 355   2                i=2;
+ 356   2                send_pc_data[20]=send_pc_data[1];
+ 357   2                while(i<20)
+ 358   2                send_pc_data[20]^=send_pc_data[i++];
+ 359   2                send_pc_data[21]=0xe0;
+ 360   2      //          REN=0;
+ 361   2      //          send_pc_count=0;
+ 362   2      //          SBUF=send_pc_data[send_pc_count++];
+ 363   2                LED1=0;     
+ 364   2      //          send_to_pc(&send_pc_data);          
+ 365   2            }
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 7   
 
- 366   2                send_pc_data[3]=block;
- 367   2                i=0;
- 368   2                while(i<16)
- 369   2                {
- 370   3                    send_pc_data[4+i]=0;
- 371   3                    i++;
- 372   3                }
- 373   2                i=2;
- 374   2                send_pc_data[20]=send_pc_data[1];
- 375   2                while(i<20)
- 376   2                send_pc_data[20]^=send_pc_data[i++];
- 377   2                send_pc_data[21]=0xe0;
- 378   2      //          REN=0;
- 379   2      //          send_pc_count=0;
- 380   2      //          SBUF=send_pc_data[send_pc_count++];
- 381   2                LED1=0;
- 382   2                send_to_pc(&send_pc_data);
- 383   2            } 
- 384   1      }
- 385          //***//
- 386          
- 387          
- 388          //******************************//
- 389          //name:Read_2block_Card_nopass
- 390          //discription:读卡 使用A密地址
- 391          //in:
- 392          //out:
- 393          void Read_2block_Card_nopass(unsigned char block)
- 394          {
- 395   1            char i=0;
- 396   1            cardhead_seek();
- 397   1            receive_card_state=0;     
- 398   1            while(receive_card_state==0x00);
- 399   1            if(received_CARDHEAD_data[1]==0x20) 
- 400   1            {       
- 401   2              cardhead_read(block); 
- 402   2              receive_card_state=0;   
- 403   2              while(receive_card_state==0x00);
- 404   2              if(received_CARDHEAD_data[1]==0x21) 
- 405   2              {
- 406   3                  send_pc_data[0]=0xbe;
- 407   3                  send_pc_data[1]=0x24;
- 408   3                  send_pc_data[2]=0x02;
- 409   3                  send_pc_data[3]=block;
- 410   3                  i=0;
- 411   3                  while(i<16)
- 412   3                  {
- 413   4                      send_pc_data[4+i]=received_CARDHEAD_data[2+i];
- 414   4                      i++;
- 415   4                  }
- 416   3                  cardhead_read(block+1); 
- 417   3                  receive_card_state=0;   
- 418   3                  while(receive_card_state==0x00);
- 419   3                  if(received_CARDHEAD_data[1]==0x21) 
- 420   3                  {
- 421   4                      i=0;
- 422   4                      while(i<16)
- 423   4                      {
- 424   5                          send_pc_data[20+i]=received_CARDHEAD_data[2+i];
- 425   5                          i++;
- 426   5                      } 
- 427   4                      i=2;
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 8   
+ 366   1              else if(received_CARDHEAD_data[1]==0xdf)  
+ 367   1            {         
+ 368   2                send_pc_data[0]=0xbe;
+ 369   2                send_pc_data[1]=0x14;
+ 370   2                send_pc_data[2]=0x81;
+ 371   2                send_pc_data[3]=block;
+ 372   2                i=0;
+ 373   2                while(i<16)
+ 374   2                {
+ 375   3                    send_pc_data[4+i]=0;
+ 376   3                    i++;
+ 377   3                }
+ 378   2                i=2;
+ 379   2                send_pc_data[20]=send_pc_data[1];
+ 380   2                while(i<20)
+ 381   2                send_pc_data[20]^=send_pc_data[i++];
+ 382   2                send_pc_data[21]=0xe0;
+ 383   2      //          REN=0;
+ 384   2      //          send_pc_count=0;
+ 385   2      //          SBUF=send_pc_data[send_pc_count++];
+ 386   2                LED1=0;
+ 387   2      //          send_to_pc(&send_pc_data);
+ 388   2            } 
+ 389   1      }
+ 390          //***//
+ 391          
+ 392          //******************************//
+ 393          //name:Write_1block_Card_nopass
+ 394          //discription:写一块数据 A密地址
+ 395          //in:
+ 396          //out:
+ 397          void Write_1block_Card_nopass(unsigned char block,unsigned char *indata0)
+ 398          {
+ 399   1            char i=0;
+ 400   1            unsigned char in[16];
+ 401   1            cardhead_seek();
+ 402   1            receive_card_state=0;     
+ 403   1            while(receive_card_state==0x00);
+ 404   1            if(received_CARDHEAD_data[1]==0x20) 
+ 405   1            { 
+ 406   2              i=0;
+ 407   2              while(i<16)
+ 408   2              {
+ 409   3                  in[i]=indata0[3+i];
+ 410   3                  i++;
+ 411   3              }         
+ 412   2              cardhead_write(block,&in);  
+ 413   2              receive_card_state=0;   
+ 414   2              while(receive_card_state==0x00);
+ 415   2              if(received_CARDHEAD_data[1]==0x22) 
+ 416   2              {
+ 417   3                  cardhead_read(block); 
+ 418   3                  receive_card_state=0;   
+ 419   3                  while(receive_card_state==0x00);
+ 420   3                  if(received_CARDHEAD_data[1]==0x21) 
+ 421   3                  {
+ 422   4                      send_pc_data[0]=0xbe;
+ 423   4                      send_pc_data[1]=0x14;
+ 424   4                      send_pc_data[2]=0x11;
+ 425   4                      send_pc_data[3]=block;
+ 426   4                      i=0;
+ 427   4                      while(i<16)
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 8   
 
- 428   4                      send_pc_data[36]=send_pc_data[1];
- 429   4                      while(i<36)
- 430   4                      send_pc_data[36]^=send_pc_data[i++];
- 431   4                      send_pc_data[37]=0xe0;  
- 432   4      //                REN=0;
- 433   4      //                send_pc_count=0;
- 434   4      //                SBUF=send_pc_data[send_pc_count++];
- 435   4                      LED1=1;
- 436   4                      send_to_pc(&send_pc_data);
- 437   4                      return;               
- 438   4                  } 
- 439   3              }
- 440   2                send_pc_data[0]=0xbe;
- 441   2                send_pc_data[1]=0x24;
- 442   2                send_pc_data[2]=0x82;
- 443   2                send_pc_data[3]=block;
- 444   2                i=0;
- 445   2                while(i<32)
- 446   2                {
- 447   3                    send_pc_data[4+i]=00;
- 448   3                    i++;
- 449   3                }
- 450   2                i=2;
- 451   2                send_pc_data[36]=send_pc_data[1];
- 452   2                while(i<36)
- 453   2                send_pc_data[36]^=send_pc_data[i++];
- 454   2                send_pc_data[37]=0xe0;  
- 455   2      //          REN=0;
- 456   2      //          send_pc_count=0;
- 457   2      //          SBUF=send_pc_data[send_pc_count++];
- 458   2                LED1=0;     
- 459   2                send_to_pc(&send_pc_data);          
- 460   2            }
- 461   1              else if(received_CARDHEAD_data[1]==0xdf)  
- 462   1            {         
- 463   2                send_pc_data[0]=0xbe;
- 464   2                send_pc_data[1]=0x24;
- 465   2                send_pc_data[2]=0x82;
- 466   2                send_pc_data[3]=block;
- 467   2                i=0;
- 468   2                while(i<32)
- 469   2                {
- 470   3                    send_pc_data[4+i]=00;
- 471   3                    i++;
- 472   3                }
- 473   2                i=2;
- 474   2                send_pc_data[36]=send_pc_data[1];
- 475   2                while(i<36)
- 476   2                send_pc_data[36]^=send_pc_data[i++];
- 477   2                send_pc_data[37]=0xe0;  
- 478   2      //          REN=0;
- 479   2      //          send_pc_count=0;
- 480   2      //          SBUF=send_pc_data[send_pc_count++];
- 481   2                LED1=0;
- 482   2                send_to_pc(&send_pc_data);
- 483   2            }     
- 484   1      }
- 485          //***//
- 486          
- 487          
- 488          //******************************//
- 489          //name:Write_2block_Card_nopass
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 9   
+ 428   4                      {
+ 429   5                          send_pc_data[4+i]=received_CARDHEAD_data[2+i];
+ 430   5                          i++;
+ 431   5                      }
+ 432   4                      i=2;
+ 433   4                      send_pc_data[20]=send_pc_data[1];
+ 434   4                      while(i<20)
+ 435   4                        send_pc_data[20]^=send_pc_data[i++];
+ 436   4                      send_pc_data[21]=0xe0;  
+ 437   4                      i=0;
+ 438   4                      while(i<16)
+ 439   4                      {
+ 440   5                          if(in[i]==send_pc_data[4+i]) i++;
+ 441   5                          else break;
+ 442   5                      }
+ 443   4                      if(i==16)
+ 444   4                      {
+ 445   5          //                REN=0;
+ 446   5          //                send_pc_count=0;
+ 447   5          //                SBUF=send_pc_data[send_pc_count++];
+ 448   5                          LED1=1;
+ 449   5      //                    send_to_pc(&send_pc_data);
+ 450   5                          return;                 
+ 451   5                      }                 
+ 452   4                  }
+ 453   3              }
+ 454   2                send_pc_data[0]=0xbe;
+ 455   2                send_pc_data[1]=0x14;
+ 456   2                send_pc_data[2]=0x91;
+ 457   2                send_pc_data[3]=block;
+ 458   2                i=0;
+ 459   2                while(i<16)
+ 460   2                {
+ 461   3                    send_pc_data[4+i]=0;
+ 462   3                    i++;
+ 463   3                }
+ 464   2                i=2;
+ 465   2                send_pc_data[20]=send_pc_data[1];
+ 466   2                while(i<20)
+ 467   2                send_pc_data[20]^=send_pc_data[i++];
+ 468   2                send_pc_data[21]=0xe0;
+ 469   2      //          REN=0;
+ 470   2      //          send_pc_count=0;
+ 471   2      //          SBUF=send_pc_data[send_pc_count++];
+ 472   2                LED1=0;     
+ 473   2      //          send_to_pc(&send_pc_data);          
+ 474   2            }
+ 475   1              else if(received_CARDHEAD_data[1]==0xdf)  
+ 476   1            {         
+ 477   2                send_pc_data[0]=0xbe;
+ 478   2                send_pc_data[1]=0x14;
+ 479   2                send_pc_data[2]=0x91;
+ 480   2                send_pc_data[3]=block;
+ 481   2                i=0;
+ 482   2                while(i<16)
+ 483   2                {
+ 484   3                    send_pc_data[4+i]=0;
+ 485   3                    i++;
+ 486   3                }
+ 487   2                i=2;
+ 488   2                send_pc_data[20]=send_pc_data[1];
+ 489   2                while(i<20)
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 9   
 
- 490          //discription:写卡 使用A密地址
- 491          //in:
- 492          //out:
- 493          void Write_2block_Card_nopass(unsigned char block,unsigned char *indata)
- 494          {
- 495   1            char i=0;
- 496   1            unsigned char in[16];
- 497   1            cardhead_seek();
- 498   1            receive_card_state=0;     
- 499   1            while(receive_card_state==0x00);
- 500   1            if(received_CARDHEAD_data[1]==0x20) 
- 501   1            { 
- 502   2              i=0;
- 503   2              while(i<16)
- 504   2              {
- 505   3                in[i]=indata[3+i];
- 506   3                i++;
- 507   3              }
- 508   2              cardhead_write(block,&in);  
- 509   2              receive_card_state=0;   
- 510   2              while(receive_card_state==0x00);
- 511   2              if(received_CARDHEAD_data[1]==0x22) 
- 512   2              {
- 513   3                  i=0;
- 514   3                  while(i<16)
- 515   3                  {
- 516   4                    in[i]=indata[19+i];
- 517   4                    i++;
- 518   4                  }
- 519   3                  cardhead_write(block+1,&in);  
- 520   3                  receive_card_state=0;   
- 521   3                  while(receive_card_state==0x00);
- 522   3                  if(received_CARDHEAD_data[1]==0x22) 
- 523   3                  {
- 524   4                      cardhead_read(block); 
- 525   4                      receive_card_state=0;   
- 526   4                      while(receive_card_state==0x00);
- 527   4                      if(received_CARDHEAD_data[1]==0x21) 
- 528   4                      {
- 529   5                          send_pc_data[0]=0xbe;
- 530   5                          send_pc_data[1]=0x24;
- 531   5                          send_pc_data[2]=0x12;
- 532   5                          send_pc_data[3]=block;
- 533   5                          i=0;
- 534   5                          while(i<16)
- 535   5                          {
- 536   6                              send_pc_data[4+i]=received_CARDHEAD_data[2+i];
- 537   6                              i++;
- 538   6                          }
- 539   5                          cardhead_read(block+1); 
- 540   5                          receive_card_state=0;   
- 541   5                          while(receive_card_state==0x00);
- 542   5                          if(received_CARDHEAD_data[1]==0x21) 
- 543   5                          {
- 544   6                              i=0;
- 545   6                              while(i<16)
- 546   6                              {
- 547   7                                  send_pc_data[20+i]=received_CARDHEAD_data[2+i];
- 548   7                                  i++;
- 549   7                              } 
- 550   6                              i=2;
- 551   6                              send_pc_data[36]=send_pc_data[1];
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 10  
+ 490   2                send_pc_data[20]^=send_pc_data[i++];
+ 491   2                send_pc_data[21]=0xe0;
+ 492   2      //          REN=0;
+ 493   2      //          send_pc_count=0;
+ 494   2      //          SBUF=send_pc_data[send_pc_count++];
+ 495   2                LED1=0;
+ 496   2      //          send_to_pc(&send_pc_data);
+ 497   2            } 
+ 498   1      }
+ 499          //***//
+ 500          
+ 501          
+ 502          //******************************//
+ 503          //name:Read_2block_Card_nopass
+ 504          //discription:读卡 使用A密地址
+ 505          //in:
+ 506          //out:
+ 507          void Read_2block_Card_nopass(unsigned char block)
+ 508          {
+ 509   1            char i=0;
+ 510   1            cardhead_seek();
+ 511   1            receive_card_state=0;     
+ 512   1            while(receive_card_state==0x00);
+ 513   1            if(received_CARDHEAD_data[1]==0x20) 
+ 514   1            {       
+ 515   2              cardhead_read(block); 
+ 516   2              receive_card_state=0;   
+ 517   2              while(receive_card_state==0x00);
+ 518   2              if(received_CARDHEAD_data[1]==0x21) 
+ 519   2              {
+ 520   3                  send_pc_data[0]=0xbe;
+ 521   3                  send_pc_data[1]=0x24;
+ 522   3                  send_pc_data[2]=0x02;
+ 523   3                  send_pc_data[3]=block;
+ 524   3                  i=0;
+ 525   3                  while(i<16)
+ 526   3                  {
+ 527   4                      send_pc_data[4+i]=received_CARDHEAD_data[2+i];
+ 528   4                      i++;
+ 529   4                  }
+ 530   3                  cardhead_read(block+1); 
+ 531   3                  receive_card_state=0;   
+ 532   3                  while(receive_card_state==0x00);
+ 533   3                  if(received_CARDHEAD_data[1]==0x21) 
+ 534   3                  {
+ 535   4                      i=0;
+ 536   4                      while(i<16)
+ 537   4                      {
+ 538   5                          send_pc_data[20+i]=received_CARDHEAD_data[2+i];
+ 539   5                          i++;
+ 540   5                      } 
+ 541   4                      i=2;
+ 542   4                      send_pc_data[36]=send_pc_data[1];
+ 543   4                      while(i<36)
+ 544   4                      send_pc_data[36]^=send_pc_data[i++];
+ 545   4                      send_pc_data[37]=0xe0;  
+ 546   4      //                REN=0;
+ 547   4      //                send_pc_count=0;
+ 548   4      //                SBUF=send_pc_data[send_pc_count++];
+ 549   4                      LED1=1;
+ 550   4      //                send_to_pc(&send_pc_data);
+ 551   4                      return;               
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 10  
 
- 552   6                              while(i<36)
- 553   6                              send_pc_data[36]^=send_pc_data[i++];
- 554   6                              send_pc_data[37]=0xe0;  
- 555   6                              i=0;
- 556   6                              while(i<32)
- 557   6                              {
- 558   7                                  if(send_pc_data[4+i]==indata[3+i]) i++;
- 559   7                                  else break;                             
- 560   7                              }
- 561   6                              if(i==32)
- 562   6                              {
- 563   7      //                            REN=0;
- 564   7      //                            send_pc_count=0;
- 565   7      //                            SBUF=send_pc_data[send_pc_count++];
- 566   7                                  LED1=1;
- 567   7                                  send_to_pc(&send_pc_data);
- 568   7                                  return;                           
- 569   7                              }             
- 570   6                          } 
- 571   5                      }             
- 572   4                  }
- 573   3      
- 574   3              }
- 575   2                send_pc_data[0]=0xbe;
- 576   2                send_pc_data[1]=0x24;
- 577   2                send_pc_data[2]=0x92;
- 578   2                send_pc_data[3]=block;
- 579   2                i=0;
- 580   2                while(i<32)
- 581   2                {
- 582   3                    send_pc_data[4+i]=00;
- 583   3                    i++;
- 584   3                }
- 585   2                i=2;
- 586   2                send_pc_data[36]=send_pc_data[1];
- 587   2                while(i<36)
- 588   2                send_pc_data[36]^=send_pc_data[i++];
- 589   2                send_pc_data[37]=0xe0;  
- 590   2      //          REN=0;
- 591   2      //          send_pc_count=0;
- 592   2      //          SBUF=send_pc_data[send_pc_count++];
- 593   2                LED1=0;
- 594   2                send_to_pc(&send_pc_data);          
- 595   2            }
- 596   1              else if(received_CARDHEAD_data[1]==0xdf)  
- 597   1            {         
- 598   2                send_pc_data[0]=0xbe;
- 599   2                send_pc_data[1]=0x24;
- 600   2                send_pc_data[2]=0x92;
- 601   2                send_pc_data[3]=block;
- 602   2                i=0;
- 603   2                while(i<32)
- 604   2                {
- 605   3                    send_pc_data[4+i]=00;
- 606   3                    i++;
- 607   3                }
- 608   2                i=2;
- 609   2                send_pc_data[36]=send_pc_data[1];
- 610   2                while(i<36)
- 611   2                send_pc_data[36]^=send_pc_data[i++];
- 612   2                send_pc_data[37]=0xe0;  
- 613   2      //          REN=0;
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 11  
+ 552   4                  } 
+ 553   3              }
+ 554   2                send_pc_data[0]=0xbe;
+ 555   2                send_pc_data[1]=0x24;
+ 556   2                send_pc_data[2]=0x82;
+ 557   2                send_pc_data[3]=block;
+ 558   2                i=0;
+ 559   2                while(i<32)
+ 560   2                {
+ 561   3                    send_pc_data[4+i]=00;
+ 562   3                    i++;
+ 563   3                }
+ 564   2                i=2;
+ 565   2                send_pc_data[36]=send_pc_data[1];
+ 566   2                while(i<36)
+ 567   2                send_pc_data[36]^=send_pc_data[i++];
+ 568   2                send_pc_data[37]=0xe0;  
+ 569   2      //          REN=0;
+ 570   2      //          send_pc_count=0;
+ 571   2      //          SBUF=send_pc_data[send_pc_count++];
+ 572   2                LED1=0;     
+ 573   2      //          send_to_pc(&send_pc_data);          
+ 574   2            }
+ 575   1              else if(received_CARDHEAD_data[1]==0xdf)  
+ 576   1            {         
+ 577   2                send_pc_data[0]=0xbe;
+ 578   2                send_pc_data[1]=0x24;
+ 579   2                send_pc_data[2]=0x82;
+ 580   2                send_pc_data[3]=block;
+ 581   2                i=0;
+ 582   2                while(i<32)
+ 583   2                {
+ 584   3                    send_pc_data[4+i]=00;
+ 585   3                    i++;
+ 586   3                }
+ 587   2                i=2;
+ 588   2                send_pc_data[36]=send_pc_data[1];
+ 589   2                while(i<36)
+ 590   2                send_pc_data[36]^=send_pc_data[i++];
+ 591   2                send_pc_data[37]=0xe0;  
+ 592   2      //          REN=0;
+ 593   2      //          send_pc_count=0;
+ 594   2      //          SBUF=send_pc_data[send_pc_count++];
+ 595   2                LED1=0;
+ 596   2      //          send_to_pc(&send_pc_data);
+ 597   2            }     
+ 598   1      }
+ 599          //***//
+ 600          
+ 601          
+ 602          //******************************//
+ 603          //name:Write_2block_Card_nopass
+ 604          //discription:写卡 使用A密地址
+ 605          //in:
+ 606          //out:
+ 607          void Write_2block_Card_nopass(unsigned char block,unsigned char *indata)
+ 608          {
+ 609   1            char i=0;
+ 610   1            unsigned char in[16];
+ 611   1            cardhead_seek();
+ 612   1            receive_card_state=0;     
+ 613   1            while(receive_card_state==0x00);
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 11  
 
- 614   2      //          send_pc_count=0;
- 615   2      //          SBUF=send_pc_data[send_pc_count++];
- 616   2                LED1=0;
- 617   2                send_to_pc(&send_pc_data);
- 618   2            }     
- 619   1      }
- 620          //***//
- 621          
- 622          //******************************//
- 623          //name:Change_Password
- 624          //discription:更改密码 A密
- 625          //in:
- 626          //out:
- 627          void Change_Password(unsigned char block,unsigned char *inpass)
- 628          {
- 629   1            char i=0;
- 630   1            unsigned char oldpass[6];
- 631   1            unsigned char newpass[6];
- 632   1            cardhead_seek();
- 633   1            receive_card_state=0;     
- 634   1            while(receive_card_state==0x00);
- 635   1            if(received_CARDHEAD_data[1]==0x20) 
- 636   1            { 
- 637   2              i=0;
- 638   2              while(i<6)
- 639   2              {
- 640   3                  oldpass[i]=inpass[3+i];
- 641   3                  i++;
- 642   3              }
- 643   2              i=0;
- 644   2              while(i<6)
- 645   2              {
- 646   3                  newpass[i]=inpass[9+i];
- 647   3                  i++;
- 648   3              }       
- 649   2              cardhead_writepass(block,&oldpass,&newpass);  
- 650   2              receive_card_state=0;   
- 651   2              while(receive_card_state==0x00);
- 652   2              if(received_CARDHEAD_data[1]==0x22) 
- 653   2              {
- 654   3                  send_pc_data[0]=0xbe;
- 655   3                  send_pc_data[1]=0x04;
- 656   3                  send_pc_data[2]=0x05;
- 657   3                  send_pc_data[3]=block;
- 658   3                  i=2;
- 659   3                  send_pc_data[4]=send_pc_data[1];
- 660   3                  while(i<4)
- 661   3                  send_pc_data[4]^=send_pc_data[i++];
- 662   3                  send_pc_data[5]=0xe0; 
- 663   3      //                REN=0;
- 664   3      //                send_pc_count=0;
- 665   3      //                SBUF=send_pc_data[send_pc_count++];
- 666   3                  LED1=1;
- 667   3                  send_to_pc(&send_pc_data);
- 668   3                  return;               
- 669   3      
- 670   3              }
- 671   2                send_pc_data[0]=0xbe;
- 672   2                send_pc_data[1]=0x04;
- 673   2                send_pc_data[2]=0x85;
- 674   2                send_pc_data[3]=block;
- 675   2                i=2;
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 12  
+ 614   1            if(received_CARDHEAD_data[1]==0x20) 
+ 615   1            { 
+ 616   2              i=0;
+ 617   2              while(i<16)
+ 618   2              {
+ 619   3                in[i]=indata[3+i];
+ 620   3                i++;
+ 621   3              }
+ 622   2              cardhead_write(block,&in);  
+ 623   2              receive_card_state=0;   
+ 624   2              while(receive_card_state==0x00);
+ 625   2              if(received_CARDHEAD_data[1]==0x22) 
+ 626   2              {
+ 627   3                  i=0;
+ 628   3                  while(i<16)
+ 629   3                  {
+ 630   4                    in[i]=indata[19+i];
+ 631   4                    i++;
+ 632   4                  }
+ 633   3                  cardhead_write(block+1,&in);  
+ 634   3                  receive_card_state=0;   
+ 635   3                  while(receive_card_state==0x00);
+ 636   3                  if(received_CARDHEAD_data[1]==0x22) 
+ 637   3                  {
+ 638   4                      cardhead_read(block); 
+ 639   4                      receive_card_state=0;   
+ 640   4                      while(receive_card_state==0x00);
+ 641   4                      if(received_CARDHEAD_data[1]==0x21) 
+ 642   4                      {
+ 643   5                          send_pc_data[0]=0xbe;
+ 644   5                          send_pc_data[1]=0x24;
+ 645   5                          send_pc_data[2]=0x12;
+ 646   5                          send_pc_data[3]=block;
+ 647   5                          i=0;
+ 648   5                          while(i<16)
+ 649   5                          {
+ 650   6                              send_pc_data[4+i]=received_CARDHEAD_data[2+i];
+ 651   6                              i++;
+ 652   6                          }
+ 653   5                          cardhead_read(block+1); 
+ 654   5                          receive_card_state=0;   
+ 655   5                          while(receive_card_state==0x00);
+ 656   5                          if(received_CARDHEAD_data[1]==0x21) 
+ 657   5                          {
+ 658   6                              i=0;
+ 659   6                              while(i<16)
+ 660   6                              {
+ 661   7                                  send_pc_data[20+i]=received_CARDHEAD_data[2+i];
+ 662   7                                  i++;
+ 663   7                              } 
+ 664   6                              i=2;
+ 665   6                              send_pc_data[36]=send_pc_data[1];
+ 666   6                              while(i<36)
+ 667   6                              send_pc_data[36]^=send_pc_data[i++];
+ 668   6                              send_pc_data[37]=0xe0;  
+ 669   6                              i=0;
+ 670   6                              while(i<32)
+ 671   6                              {
+ 672   7                                  if(send_pc_data[4+i]==indata[3+i]) i++;
+ 673   7                                  else break;                             
+ 674   7                              }
+ 675   6                              if(i==32)
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 12  
 
- 676   2                send_pc_data[4]=send_pc_data[1];
- 677   2                while(i<4)
- 678   2                send_pc_data[4]^=send_pc_data[i++];
- 679   2                send_pc_data[5]=0xe0; 
- 680   2      //          REN=0;
- 681   2      //          send_pc_count=0;
- 682   2      //          SBUF=send_pc_data[send_pc_count++];
- 683   2                LED1=0;     
- 684   2                send_to_pc(&send_pc_data);          
- 685   2            }
- 686   1              else if(received_CARDHEAD_data[1]==0xdf)  
- 687   1            {         
- 688   2                send_pc_data[0]=0xbe;
- 689   2                send_pc_data[1]=0x04;
- 690   2                send_pc_data[2]=0x85;
- 691   2                send_pc_data[3]=block;
- 692   2                i=2;
- 693   2                send_pc_data[4]=send_pc_data[1];
- 694   2                while(i<4)
- 695   2                send_pc_data[4]^=send_pc_data[i++];
- 696   2                send_pc_data[5]=0xe0; 
- 697   2      //          REN=0;
- 698   2      //          send_pc_count=0;
- 699   2      //          SBUF=send_pc_data[send_pc_count++];
- 700   2                LED1=0;
- 701   2                send_to_pc(&send_pc_data);
- 702   2            }     
- 703   1      }
- 704          //***//
- 705          
- 706          //******************************//
- 707          //name:Change_CardHead_Password
- 708          //discription:更改卡头密码 A密
- 709          //in:
- 710          //out:
- 711          void Change_CardHead_Password(unsigned char *inpass)
- 712          {
- 713   1              char i=0;
- 714   1              unsigned char newpass[6];
- 715   1              i=0;
- 716   1              while(i<6)
- 717   1              {
- 718   2                  newpass[i]=inpass[4+i];
- 719   2                  i++;
- 720   2              }
- 721   1              cardhead_writecardheadpass(inpass[2],inpass[3],&newpass); 
- 722   1              receive_card_state=0;   
- 723   1              while(receive_card_state==0x00);
- 724   1              if(received_CARDHEAD_data[1]==0x2B) 
- 725   1              {
- 726   2                  send_pc_data[0]=0xbe;
- 727   2                  send_pc_data[1]=0x0b;
- 728   2                  send_pc_data[2]=0x22;
- 729   2                  send_pc_data[3]=inpass[2];
- 730   2                  send_pc_data[4]=inpass[3];
- 731   2                  i=0;
- 732   2                  while(i<6)
- 733   2                  {
- 734   3                      send_pc_data[5+i]=inpass[4+i];
- 735   3                      i++;
- 736   3                  }
- 737   2                  i=2;
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 13  
+ 676   6                              {
+ 677   7      //                            REN=0;
+ 678   7      //                            send_pc_count=0;
+ 679   7      //                            SBUF=send_pc_data[send_pc_count++];
+ 680   7                                  LED1=1;
+ 681   7      //                            send_to_pc(&send_pc_data);
+ 682   7                                  return;                           
+ 683   7                              }             
+ 684   6                          } 
+ 685   5                      }             
+ 686   4                  }
+ 687   3      
+ 688   3              }
+ 689   2                send_pc_data[0]=0xbe;
+ 690   2                send_pc_data[1]=0x24;
+ 691   2                send_pc_data[2]=0x92;
+ 692   2                send_pc_data[3]=block;
+ 693   2                i=0;
+ 694   2                while(i<32)
+ 695   2                {
+ 696   3                    send_pc_data[4+i]=00;
+ 697   3                    i++;
+ 698   3                }
+ 699   2                i=2;
+ 700   2                send_pc_data[36]=send_pc_data[1];
+ 701   2                while(i<36)
+ 702   2                send_pc_data[36]^=send_pc_data[i++];
+ 703   2                send_pc_data[37]=0xe0;  
+ 704   2      //          REN=0;
+ 705   2      //          send_pc_count=0;
+ 706   2      //          SBUF=send_pc_data[send_pc_count++];
+ 707   2                LED1=0;
+ 708   2      //          send_to_pc(&send_pc_data);          
+ 709   2            }
+ 710   1              else if(received_CARDHEAD_data[1]==0xdf)  
+ 711   1            {         
+ 712   2                send_pc_data[0]=0xbe;
+ 713   2                send_pc_data[1]=0x24;
+ 714   2                send_pc_data[2]=0x92;
+ 715   2                send_pc_data[3]=block;
+ 716   2                i=0;
+ 717   2                while(i<32)
+ 718   2                {
+ 719   3                    send_pc_data[4+i]=00;
+ 720   3                    i++;
+ 721   3                }
+ 722   2                i=2;
+ 723   2                send_pc_data[36]=send_pc_data[1];
+ 724   2                while(i<36)
+ 725   2                send_pc_data[36]^=send_pc_data[i++];
+ 726   2                send_pc_data[37]=0xe0;  
+ 727   2      //          REN=0;
+ 728   2      //          send_pc_count=0;
+ 729   2      //          SBUF=send_pc_data[send_pc_count++];
+ 730   2                LED1=0;
+ 731   2      //          send_to_pc(&send_pc_data);
+ 732   2            }     
+ 733   1      }
+ 734          //***//
+ 735          
+ 736          //******************************//
+ 737          //name:Change_Password
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 13  
 
- 738   2                  send_pc_data[11]=send_pc_data[1];
- 739   2                  while(i<11)
- 740   2                  send_pc_data[11]^=send_pc_data[i++];
- 741   2                  send_pc_data[12]=0xe0;  
- 742   2      //                REN=0;
- 743   2      //                send_pc_count=0;
- 744   2      //                SBUF=send_pc_data[send_pc_count++];
- 745   2                  LED1=1;
- 746   2                  send_to_pc(&send_pc_data);
- 747   2                  return;               
- 748   2      
- 749   2              }
- 750   1                send_pc_data[0]=0xbe;
- 751   1                send_pc_data[1]=0x0b;
- 752   1                send_pc_data[2]=0xa2;
- 753   1                send_pc_data[3]=inpass[2];
- 754   1                send_pc_data[4]=inpass[3];
- 755   1                i=0;
- 756   1                while(i<6)
- 757   1                {
- 758   2                    send_pc_data[5+i]=inpass[4+i];
- 759   2                    i++;
- 760   2                }
- 761   1                i=2;
- 762   1                send_pc_data[11]=send_pc_data[1];
- 763   1                while(i<11)
- 764   1                send_pc_data[11]^=send_pc_data[i++];
- 765   1                send_pc_data[12]=0xe0;  
- 766   1      //          REN=0;
- 767   1      //          send_pc_count=0;
- 768   1      //          SBUF=send_pc_data[send_pc_count++];
- 769   1                LED1=0;     
- 770   1                send_to_pc(&send_pc_data);          
- 771   1      
- 772   1      }
- 773          //***//
- 774          
- 775          //******************************//
- 776          //name:Read_1block_Card_havepass
- 777          //discription:读1块数据 A密
- 778          //in:
- 779          //out:
- 780          void Read_1block_Card_havepass(unsigned char block,unsigned char *inpass)
- 781          {
- 782   1            char i=0;
- 783   1            unsigned char pass[6];
- 784   1            cardhead_seek();
- 785   1            receive_card_state=0;     
- 786   1            while(receive_card_state==0x00);
- 787   1            if(received_CARDHEAD_data[1]==0x20) 
- 788   1            { 
- 789   2              i=0;
- 790   2              while(i<6)
- 791   2              {
- 792   3                  pass[i]=inpass[3+i];
- 793   3                  i++;
- 794   3              }       
- 795   2              cardhead_read_havepass(block,&pass);  
- 796   2              receive_card_state=0;   
- 797   2              while(receive_card_state==0x00);
- 798   2              if(received_CARDHEAD_data[1]==0x21) 
- 799   2              {
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 14  
+ 738          //discription:更改密码 A密
+ 739          //in:
+ 740          //out:
+ 741          void Change_Password(unsigned char block,unsigned char *inpass)
+ 742          {
+ 743   1            char i=0;
+ 744   1            unsigned char oldpass[6];
+ 745   1            unsigned char newpass[6];
+ 746   1            cardhead_seek();
+ 747   1            receive_card_state=0;     
+ 748   1            while(receive_card_state==0x00);
+ 749   1            if(received_CARDHEAD_data[1]==0x20) 
+ 750   1            { 
+ 751   2              i=0;
+ 752   2              while(i<6)
+ 753   2              {
+ 754   3                  oldpass[i]=inpass[3+i];
+ 755   3                  i++;
+ 756   3              }
+ 757   2              i=0;
+ 758   2              while(i<6)
+ 759   2              {
+ 760   3                  newpass[i]=inpass[9+i];
+ 761   3                  i++;
+ 762   3              }       
+ 763   2              cardhead_writepass(block,&oldpass,&newpass);  
+ 764   2              receive_card_state=0;   
+ 765   2              while(receive_card_state==0x00);
+ 766   2              if(received_CARDHEAD_data[1]==0x22) 
+ 767   2              {
+ 768   3                  send_pc_data[0]=0xbe;
+ 769   3                  send_pc_data[1]=0x04;
+ 770   3                  send_pc_data[2]=0x05;
+ 771   3                  send_pc_data[3]=block;
+ 772   3                  i=2;
+ 773   3                  send_pc_data[4]=send_pc_data[1];
+ 774   3                  while(i<4)
+ 775   3                  send_pc_data[4]^=send_pc_data[i++];
+ 776   3                  send_pc_data[5]=0xe0; 
+ 777   3      //                REN=0;
+ 778   3      //                send_pc_count=0;
+ 779   3      //                SBUF=send_pc_data[send_pc_count++];
+ 780   3                  LED1=1;
+ 781   3      //            send_to_pc(&send_pc_data);
+ 782   3                  return;               
+ 783   3      
+ 784   3              }
+ 785   2                send_pc_data[0]=0xbe;
+ 786   2                send_pc_data[1]=0x04;
+ 787   2                send_pc_data[2]=0x85;
+ 788   2                send_pc_data[3]=block;
+ 789   2                i=2;
+ 790   2                send_pc_data[4]=send_pc_data[1];
+ 791   2                while(i<4)
+ 792   2                send_pc_data[4]^=send_pc_data[i++];
+ 793   2                send_pc_data[5]=0xe0; 
+ 794   2      //          REN=0;
+ 795   2      //          send_pc_count=0;
+ 796   2      //          SBUF=send_pc_data[send_pc_count++];
+ 797   2                LED1=0;     
+ 798   2      //          send_to_pc(&send_pc_data);          
+ 799   2            }
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 14  
 
- 800   3                  send_pc_data[0]=0xbe;
- 801   3                  send_pc_data[1]=0x14;
- 802   3                  send_pc_data[2]=0x03;
- 803   3                  send_pc_data[3]=block;
- 804   3                  i=0;
- 805   3                  while(i<16)
- 806   3                  {
- 807   4                      send_pc_data[4+i]=received_CARDHEAD_data[2+i];
- 808   4                      i++;
- 809   4                  }
- 810   3                  i=2;
- 811   3                  send_pc_data[20]=send_pc_data[1];
- 812   3                  while(i<20)
- 813   3                  send_pc_data[20]^=send_pc_data[i++];
- 814   3                  send_pc_data[21]=0xe0;  
- 815   3      //                REN=0;
- 816   3      //                send_pc_count=0;
- 817   3      //                SBUF=send_pc_data[send_pc_count++];
- 818   3                  LED1=1;
- 819   3                  send_to_pc(&send_pc_data);
- 820   3                  return;               
- 821   3      
- 822   3              }
- 823   2                send_pc_data[0]=0xbe;
- 824   2                send_pc_data[1]=0x14;
- 825   2                send_pc_data[2]=0x83;
- 826   2                send_pc_data[3]=block;
- 827   2                i=0;
- 828   2                while(i<16)
- 829   2                {
- 830   3                    send_pc_data[4+i]=0;
- 831   3                    i++;
- 832   3                }
- 833   2                i=2;
- 834   2                send_pc_data[20]=send_pc_data[1];
- 835   2                while(i<20)
- 836   2                send_pc_data[20]^=send_pc_data[i++];
- 837   2                send_pc_data[21]=0xe0;
- 838   2      //          REN=0;
- 839   2      //          send_pc_count=0;
- 840   2      //          SBUF=send_pc_data[send_pc_count++];
- 841   2                LED1=0;     
- 842   2                send_to_pc(&send_pc_data);          
- 843   2            }
- 844   1              else if(received_CARDHEAD_data[1]==0xdf)  
- 845   1            {         
- 846   2                send_pc_data[0]=0xbe;
- 847   2                send_pc_data[1]=0x14;
- 848   2                send_pc_data[2]=0x83;
- 849   2                send_pc_data[3]=block;
- 850   2                i=0;
- 851   2                while(i<16)
- 852   2                {
- 853   3                    send_pc_data[4+i]=0;
- 854   3                    i++;
- 855   3                }
- 856   2                i=2;
- 857   2                send_pc_data[20]=send_pc_data[1];
- 858   2                while(i<20)
- 859   2                send_pc_data[20]^=send_pc_data[i++];
- 860   2                send_pc_data[21]=0xe0;
- 861   2      //          REN=0;
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 15  
+ 800   1              else if(received_CARDHEAD_data[1]==0xdf)  
+ 801   1            {         
+ 802   2                send_pc_data[0]=0xbe;
+ 803   2                send_pc_data[1]=0x04;
+ 804   2                send_pc_data[2]=0x85;
+ 805   2                send_pc_data[3]=block;
+ 806   2                i=2;
+ 807   2                send_pc_data[4]=send_pc_data[1];
+ 808   2                while(i<4)
+ 809   2                send_pc_data[4]^=send_pc_data[i++];
+ 810   2                send_pc_data[5]=0xe0; 
+ 811   2      //          REN=0;
+ 812   2      //          send_pc_count=0;
+ 813   2      //          SBUF=send_pc_data[send_pc_count++];
+ 814   2                LED1=0;
+ 815   2      //          send_to_pc(&send_pc_data);
+ 816   2            }     
+ 817   1      }
+ 818          //***//
+ 819          
+ 820          //******************************//
+ 821          //name:Change_CardHead_Password
+ 822          //discription:更改卡头密码 A密
+ 823          //in:
+ 824          //out:
+ 825          void Change_CardHead_Password(unsigned char *inpass)
+ 826          {
+ 827   1              char i=0;
+ 828   1              unsigned char newpass[6];
+ 829   1              i=0;
+ 830   1              while(i<6)
+ 831   1              {
+ 832   2                  newpass[i]=inpass[4+i];
+ 833   2                  i++;
+ 834   2              }
+ 835   1              cardhead_writecardheadpass(inpass[2],inpass[3],&newpass); 
+ 836   1              receive_card_state=0;   
+ 837   1              while(receive_card_state==0x00);
+ 838   1              if(received_CARDHEAD_data[1]==0x2B) 
+ 839   1              {
+ 840   2                  send_pc_data[0]=0xbe;
+ 841   2                  send_pc_data[1]=0x0b;
+ 842   2                  send_pc_data[2]=0x22;
+ 843   2                  send_pc_data[3]=inpass[2];
+ 844   2                  send_pc_data[4]=inpass[3];
+ 845   2                  i=0;
+ 846   2                  while(i<6)
+ 847   2                  {
+ 848   3                      send_pc_data[5+i]=inpass[4+i];
+ 849   3                      i++;
+ 850   3                  }
+ 851   2                  i=2;
+ 852   2                  send_pc_data[11]=send_pc_data[1];
+ 853   2                  while(i<11)
+ 854   2                  send_pc_data[11]^=send_pc_data[i++];
+ 855   2                  send_pc_data[12]=0xe0;  
+ 856   2      //                REN=0;
+ 857   2      //                send_pc_count=0;
+ 858   2      //                SBUF=send_pc_data[send_pc_count++];
+ 859   2                  LED1=1;
+ 860   2      //            send_to_pc(&send_pc_data);
+ 861   2                  return;               
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 15  
 
- 862   2      //          send_pc_count=0;
- 863   2      //          SBUF=send_pc_data[send_pc_count++];
- 864   2                LED1=0;
- 865   2                send_to_pc(&send_pc_data);
- 866   2            } 
- 867   1      }
- 868          //***//
- 869          
- 870          //******************************//
- 871          //name:Write_1block_Card_havepass
- 872          //discription:写一块数据 A密
- 873          //in:
- 874          //out:
- 875          void Write_1block_Card_havepass(unsigned char block,unsigned char *indata0)
- 876          {
- 877   1            char i=0;
- 878   1            unsigned char pass[6];
- 879   1            unsigned char in[16];
- 880   1            cardhead_seek();
- 881   1            receive_card_state=0;     
- 882   1            while(receive_card_state==0x00);
- 883   1            if(received_CARDHEAD_data[1]==0x20) 
- 884   1            { 
- 885   2              i=0;
- 886   2              while(i<6)
- 887   2              {
- 888   3                  pass[i]=indata0[3+i];
- 889   3                  i++;
- 890   3              } 
- 891   2              i=0;
- 892   2              while(i<16)
- 893   2              {
- 894   3                  in[i]=indata0[9+i];
- 895   3                  i++;
- 896   3              }         
- 897   2              cardhead_write_havepass(block,&pass,&in); 
- 898   2              receive_card_state=0;   
- 899   2              while(receive_card_state==0x00);
- 900   2              if(received_CARDHEAD_data[1]==0x22) 
- 901   2              {
- 902   3                  cardhead_read_havepass(block,&pass);  
- 903   3                  receive_card_state=0;   
- 904   3                  while(receive_card_state==0x00);
- 905   3                  if(received_CARDHEAD_data[1]==0x21) 
- 906   3                  {
- 907   4                      send_pc_data[0]=0xbe;
- 908   4                      send_pc_data[1]=0x14;
- 909   4                      send_pc_data[2]=0x04;
- 910   4                      send_pc_data[3]=block;
- 911   4                      i=0;
- 912   4                      while(i<16)
- 913   4                      {
- 914   5                          send_pc_data[4+i]=received_CARDHEAD_data[2+i];
- 915   5                          i++;
- 916   5                      }
- 917   4                      i=2;
- 918   4                      send_pc_data[20]=send_pc_data[1];
- 919   4                      while(i<20)
- 920   4                        send_pc_data[20]^=send_pc_data[i++];
- 921   4                      send_pc_data[21]=0xe0;  
- 922   4                      i=0;
- 923   4                      while(i<16)
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 16  
+ 862   2      
+ 863   2              }
+ 864   1                send_pc_data[0]=0xbe;
+ 865   1                send_pc_data[1]=0x0b;
+ 866   1                send_pc_data[2]=0xa2;
+ 867   1                send_pc_data[3]=inpass[2];
+ 868   1                send_pc_data[4]=inpass[3];
+ 869   1                i=0;
+ 870   1                while(i<6)
+ 871   1                {
+ 872   2                    send_pc_data[5+i]=inpass[4+i];
+ 873   2                    i++;
+ 874   2                }
+ 875   1                i=2;
+ 876   1                send_pc_data[11]=send_pc_data[1];
+ 877   1                while(i<11)
+ 878   1                send_pc_data[11]^=send_pc_data[i++];
+ 879   1                send_pc_data[12]=0xe0;  
+ 880   1      //          REN=0;
+ 881   1      //          send_pc_count=0;
+ 882   1      //          SBUF=send_pc_data[send_pc_count++];
+ 883   1                LED1=0;     
+ 884   1      //          send_to_pc(&send_pc_data);          
+ 885   1      
+ 886   1      }
+ 887          //***//
+ 888          
+ 889          //******************************//
+ 890          //name:Read_1block_Card_havepass
+ 891          //discription:读1块数据 A密
+ 892          //in:
+ 893          //out:
+ 894          void Read_1block_Card_havepass(unsigned char block,unsigned char *inpass)
+ 895          {
+ 896   1            char i=0;
+ 897   1            unsigned char pass[6];
+ 898   1            cardhead_seek();
+ 899   1            receive_card_state=0;     
+ 900   1            while(receive_card_state==0x00);
+ 901   1            if(received_CARDHEAD_data[1]==0x20) 
+ 902   1            { 
+ 903   2              i=0;
+ 904   2              while(i<6)
+ 905   2              {
+ 906   3                  pass[i]=inpass[3+i];
+ 907   3                  i++;
+ 908   3              }       
+ 909   2              cardhead_read_havepass(block,&pass);  
+ 910   2              receive_card_state=0;   
+ 911   2              while(receive_card_state==0x00);
+ 912   2              if(received_CARDHEAD_data[1]==0x21) 
+ 913   2              {
+ 914   3                  send_pc_data[0]=0xbe;
+ 915   3                  send_pc_data[1]=0x14;
+ 916   3                  send_pc_data[2]=0x03;
+ 917   3                  send_pc_data[3]=block;
+ 918   3                  i=0;
+ 919   3                  while(i<16)
+ 920   3                  {
+ 921   4                      send_pc_data[4+i]=received_CARDHEAD_data[2+i];
+ 922   4                      i++;
+ 923   4                  }
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 16  
 
- 924   4                      {
- 925   5                          if(in[i]==send_pc_data[4+i]) i++;
- 926   5                          else break;
- 927   5                      }
- 928   4                      if(i==16)
- 929   4                      {
- 930   5          //                REN=0;
- 931   5          //                send_pc_count=0;
- 932   5          //                SBUF=send_pc_data[send_pc_count++];
- 933   5                          LED1=1;
- 934   5                          send_to_pc(&send_pc_data);
- 935   5                          return;                 
- 936   5                      }                 
- 937   4                  }
- 938   3              }
- 939   2                send_pc_data[0]=0xbe;
- 940   2                send_pc_data[1]=0x14;
- 941   2                send_pc_data[2]=0x84;
- 942   2                send_pc_data[3]=block;
- 943   2                i=0;
- 944   2                while(i<16)
- 945   2                {
- 946   3                    send_pc_data[4+i]=0;
- 947   3                    i++;
- 948   3                }
- 949   2                i=2;
- 950   2                send_pc_data[20]=send_pc_data[1];
- 951   2                while(i<20)
- 952   2                send_pc_data[20]^=send_pc_data[i++];
- 953   2                send_pc_data[21]=0xe0;
- 954   2      //          REN=0;
- 955   2      //          send_pc_count=0;
- 956   2      //          SBUF=send_pc_data[send_pc_count++];
- 957   2                LED1=0;     
- 958   2                send_to_pc(&send_pc_data);          
- 959   2            }
- 960   1              else if(received_CARDHEAD_data[1]==0xdf)  
- 961   1            {         
- 962   2                send_pc_data[0]=0xbe;
- 963   2                send_pc_data[1]=0x14;
- 964   2                send_pc_data[2]=0x84;
- 965   2                send_pc_data[3]=block;
- 966   2                i=0;
- 967   2                while(i<16)
- 968   2                {
- 969   3                    send_pc_data[4+i]=0;
- 970   3                    i++;
- 971   3                }
- 972   2                i=2;
- 973   2                send_pc_data[20]=send_pc_data[1];
- 974   2                while(i<20)
- 975   2                send_pc_data[20]^=send_pc_data[i++];
- 976   2                send_pc_data[21]=0xe0;
- 977   2      //          REN=0;
- 978   2      //          send_pc_count=0;
- 979   2      //          SBUF=send_pc_data[send_pc_count++];
- 980   2                LED1=0;
- 981   2                send_to_pc(&send_pc_data);
- 982   2            } 
- 983   1      }
- 984          //***//
- 985          
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 17  
+ 924   3                  i=2;
+ 925   3                  send_pc_data[20]=send_pc_data[1];
+ 926   3                  while(i<20)
+ 927   3                  send_pc_data[20]^=send_pc_data[i++];
+ 928   3                  send_pc_data[21]=0xe0;  
+ 929   3      //                REN=0;
+ 930   3      //                send_pc_count=0;
+ 931   3      //                SBUF=send_pc_data[send_pc_count++];
+ 932   3                  LED1=1;
+ 933   3      //            send_to_pc(&send_pc_data);
+ 934   3                  return;               
+ 935   3      
+ 936   3              }
+ 937   2                send_pc_data[0]=0xbe;
+ 938   2                send_pc_data[1]=0x14;
+ 939   2                send_pc_data[2]=0x83;
+ 940   2                send_pc_data[3]=block;
+ 941   2                i=0;
+ 942   2                while(i<16)
+ 943   2                {
+ 944   3                    send_pc_data[4+i]=0;
+ 945   3                    i++;
+ 946   3                }
+ 947   2                i=2;
+ 948   2                send_pc_data[20]=send_pc_data[1];
+ 949   2                while(i<20)
+ 950   2                send_pc_data[20]^=send_pc_data[i++];
+ 951   2                send_pc_data[21]=0xe0;
+ 952   2      //          REN=0;
+ 953   2      //          send_pc_count=0;
+ 954   2      //          SBUF=send_pc_data[send_pc_count++];
+ 955   2                LED1=0;     
+ 956   2      //          send_to_pc(&send_pc_data);          
+ 957   2            }
+ 958   1              else if(received_CARDHEAD_data[1]==0xdf)  
+ 959   1            {         
+ 960   2                send_pc_data[0]=0xbe;
+ 961   2                send_pc_data[1]=0x14;
+ 962   2                send_pc_data[2]=0x83;
+ 963   2                send_pc_data[3]=block;
+ 964   2                i=0;
+ 965   2                while(i<16)
+ 966   2                {
+ 967   3                    send_pc_data[4+i]=0;
+ 968   3                    i++;
+ 969   3                }
+ 970   2                i=2;
+ 971   2                send_pc_data[20]=send_pc_data[1];
+ 972   2                while(i<20)
+ 973   2                send_pc_data[20]^=send_pc_data[i++];
+ 974   2                send_pc_data[21]=0xe0;
+ 975   2      //          REN=0;
+ 976   2      //          send_pc_count=0;
+ 977   2      //          SBUF=send_pc_data[send_pc_count++];
+ 978   2                LED1=0;
+ 979   2      //          send_to_pc(&send_pc_data);
+ 980   2            } 
+ 981   1      }
+ 982          //***//
+ 983          
+ 984          //******************************//
+ 985          //name:Write_1block_Card_havepass
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 17  
 
- 986          //******************************//
- 987          //name:send_to_pc
- 988          //discription:发送至pc数据 uart1
- 989          //in:
- 990          //out:
- 991          void send_to_pc(unsigned char *in)
- 992          {
- 993   1          char i=in[1]+2;
- 994   1          TI=0;
- 995   1          REN=0;
- 996   1          while(i--)
- 997   1          {
- 998   2              SBUF=*in++;
- 999   2              while(!TI);
-1000   2              TI=0;
-1001   2          }
-1002   1          REN=1;  
-1003   1      }
-1004          //***//
-1005          
-1006          //******************************//
-1007          //name:verr
-1008          //discription:校验函数
-1009          //in:
-1010          //out:
-1011          bit verr_recevie_pc(void)
-1012          {
-1013   1        unsigned char i=2;
-1014   1        temp=receive_PC_data[1];
-1015   1        while(i<receive_PC_data[1])
-1016   1        {
-1017   2          temp^=receive_PC_data[i];
-1018   2          i++;
-1019   2        }
-1020   1        if(temp==receive_PC_data[receive_PC_data[1]]) return 1;
-1021   1        else return 0;
-1022   1      }
-1023          //***//
-1024          
-1025          //******************************//
-1026          //name:verr
-1027          //discription:校验函数
-1028          //in:
-1029          //out:
-1030          bit verr_recevie_cardhead(void)
-1031          {
-1032   1        unsigned char i=1;
-1033   1        temp1=receive_CARDHEAD_data[0];
-1034   1        while(i<(receive_CARDHEAD_data[2]+2))
-1035   1        {
-1036   2          temp1^=receive_CARDHEAD_data[i];
-1037   2          i++;
-1038   2        }
-1039   1        if(temp1==(~receive_CARDHEAD_data[receive_CARDHEAD_data[2]+2])) return 1;
-1040   1        else return 0;
-1041   1      }
-1042          //***//
-1043          
-1044          //******************************//
-1045          //name:cardhead_seek
-1046          //discription:发送指令到卡头，寻卡
-1047          //in:
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 18  
+ 986          //discription:写一块数据 A密
+ 987          //in:
+ 988          //out:
+ 989          void Write_1block_Card_havepass(unsigned char block,unsigned char *indata0)
+ 990          {
+ 991   1            char i=0;
+ 992   1            unsigned char pass[6];
+ 993   1            unsigned char in[16];
+ 994   1            cardhead_seek();
+ 995   1            receive_card_state=0;     
+ 996   1            while(receive_card_state==0x00);
+ 997   1            if(received_CARDHEAD_data[1]==0x20) 
+ 998   1            { 
+ 999   2              i=0;
+1000   2              while(i<6)
+1001   2              {
+1002   3                  pass[i]=indata0[3+i];
+1003   3                  i++;
+1004   3              } 
+1005   2              i=0;
+1006   2              while(i<16)
+1007   2              {
+1008   3                  in[i]=indata0[9+i];
+1009   3                  i++;
+1010   3              }         
+1011   2              cardhead_write_havepass(block,&pass,&in); 
+1012   2              receive_card_state=0;   
+1013   2              while(receive_card_state==0x00);
+1014   2              if(received_CARDHEAD_data[1]==0x22) 
+1015   2              {
+1016   3                  cardhead_read_havepass(block,&pass);  
+1017   3                  receive_card_state=0;   
+1018   3                  while(receive_card_state==0x00);
+1019   3                  if(received_CARDHEAD_data[1]==0x21) 
+1020   3                  {
+1021   4                      send_pc_data[0]=0xbe;
+1022   4                      send_pc_data[1]=0x14;
+1023   4                      send_pc_data[2]=0x04;
+1024   4                      send_pc_data[3]=block;
+1025   4                      i=0;
+1026   4                      while(i<16)
+1027   4                      {
+1028   5                          send_pc_data[4+i]=received_CARDHEAD_data[2+i];
+1029   5                          i++;
+1030   5                      }
+1031   4                      i=2;
+1032   4                      send_pc_data[20]=send_pc_data[1];
+1033   4                      while(i<20)
+1034   4                        send_pc_data[20]^=send_pc_data[i++];
+1035   4                      send_pc_data[21]=0xe0;  
+1036   4                      i=0;
+1037   4                      while(i<16)
+1038   4                      {
+1039   5                          if(in[i]==send_pc_data[4+i]) i++;
+1040   5                          else break;
+1041   5                      }
+1042   4                      if(i==16)
+1043   4                      {
+1044   5          //                REN=0;
+1045   5          //                send_pc_count=0;
+1046   5          //                SBUF=send_pc_data[send_pc_count++];
+1047   5                          LED1=1;
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 18  
 
-1048          //out:
-1049          void cardhead_seek(void)
-1050          {
-1051   1      //  unsigned char send_data[6];
-1052   1        send_data[0]=0xaa;
-1053   1        send_data[1]=0x55;
-1054   1        send_data[2]=0x03;
-1055   1        send_data[3]=0x20;
-1056   1        send_data[4]=0x00;
-1057   1        send_data[5]=0x23;
-1058   1        send_cmd_to_cardhead(&send_data);
-1059   1      }
-1060          //***//
-1061          
-1062          //******************************//
-1063          //name:cardhead_read
-1064          //discription:发送指令到卡头，读卡
-1065          //in:
-1066          //out:
-1067          void cardhead_read(unsigned char block)
-1068          {
-1069   1        //unsigned char send_data[9];
-1070   1        unsigned char i=0;
-1071   1        send_data[0]=0xaa;
-1072   1        send_data[1]=0x55;
-1073   1        send_data[2]=0x06;
-1074   1        send_data[3]=0x21;
-1075   1        send_data[4]=0x02;
-1076   1        send_data[5]=block;
-1077   1        send_data[6]=0x80;
-1078   1        send_data[7]=0;
-1079   1        i=3;
-1080   1        send_data[8]=send_data[2];
-1081   1        while(i<8)
-1082   1        send_data[8]^=  send_data[i++];
-1083   1        send_cmd_to_cardhead(&send_data);
-1084   1      }
-1085          //***//
-1086          
-1087          //******************************//
-1088          //name:cardhead_read_havepass
-1089          //discription:发送指令到卡头，读卡
-1090          //in:
-1091          //out:
-1092          void cardhead_read_havepass(unsigned char block,unsigned char *pass)
-1093          {
-1094   1        //unsigned char send_data[9];
-1095   1        unsigned char i=0;
-1096   1        send_data[0]=0xaa;
-1097   1        send_data[1]=0x55;
-1098   1        send_data[2]=0x0a;
-1099   1        send_data[3]=0x21;
-1100   1        send_data[4]=0x00;
-1101   1        send_data[5]=block;
-1102   1        i=0;
-1103   1        while(i<6)
-1104   1            send_data[6+(i++)]=*pass++;
-1105   1        i=3;
-1106   1        send_data[12]=send_data[2];
-1107   1        while(i<12)
-1108   1        send_data[12]^= send_data[i++];
-1109   1        send_cmd_to_cardhead(&send_data);
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 19  
+1048   5      //                    send_to_pc(&send_pc_data);
+1049   5                          return;                 
+1050   5                      }                 
+1051   4                  }
+1052   3              }
+1053   2                send_pc_data[0]=0xbe;
+1054   2                send_pc_data[1]=0x14;
+1055   2                send_pc_data[2]=0x84;
+1056   2                send_pc_data[3]=block;
+1057   2                i=0;
+1058   2                while(i<16)
+1059   2                {
+1060   3                    send_pc_data[4+i]=0;
+1061   3                    i++;
+1062   3                }
+1063   2                i=2;
+1064   2                send_pc_data[20]=send_pc_data[1];
+1065   2                while(i<20)
+1066   2                send_pc_data[20]^=send_pc_data[i++];
+1067   2                send_pc_data[21]=0xe0;
+1068   2      //          REN=0;
+1069   2      //          send_pc_count=0;
+1070   2      //          SBUF=send_pc_data[send_pc_count++];
+1071   2                LED1=0;     
+1072   2      //          send_to_pc(&send_pc_data);          
+1073   2            }
+1074   1              else if(received_CARDHEAD_data[1]==0xdf)  
+1075   1            {         
+1076   2                send_pc_data[0]=0xbe;
+1077   2                send_pc_data[1]=0x14;
+1078   2                send_pc_data[2]=0x84;
+1079   2                send_pc_data[3]=block;
+1080   2                i=0;
+1081   2                while(i<16)
+1082   2                {
+1083   3                    send_pc_data[4+i]=0;
+1084   3                    i++;
+1085   3                }
+1086   2                i=2;
+1087   2                send_pc_data[20]=send_pc_data[1];
+1088   2                while(i<20)
+1089   2                send_pc_data[20]^=send_pc_data[i++];
+1090   2                send_pc_data[21]=0xe0;
+1091   2      //          REN=0;
+1092   2      //          send_pc_count=0;
+1093   2      //          SBUF=send_pc_data[send_pc_count++];
+1094   2                LED1=0;
+1095   2      //          send_to_pc(&send_pc_data);
+1096   2            } 
+1097   1      }
+1098          //***//
+1099          
+1100          //******************************//
+1101          //name:send_to_pc
+1102          //discription:发送至pc数据 uart1
+1103          //in:
+1104          //out:
+1105          void send_to_pc(unsigned char *in)
+1106          {
+1107   1          char i=in[1]+2;
+1108   1          TI=0;
+1109   1          REN=0;
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 19  
 
-1110   1      }
-1111          //***//
-1112          
-1113          //******************************//
-1114          //name:cardhead_write
-1115          //discription:发送指令到卡头，写卡
-1116          //in:
-1117          //out:
-1118          void cardhead_write(unsigned char block,unsigned char *indata11)
-1119          {
-1120   1        //unsigned char send_data[25];
-1121   1        unsigned char i=0;
-1122   1        send_data[0]=0xaa;
-1123   1        send_data[1]=0x55;
-1124   1        send_data[2]=0x16;
-1125   1        send_data[3]=0x22;
-1126   1        send_data[4]=0x02;
-1127   1        send_data[5]=block;
-1128   1        send_data[6]=0x80;
-1129   1        send_data[7]=0; 
-1130   1        i=0;
-1131   1        while(i<16)
-1132   1        {
-1133   2            send_data[8+i]=indata11[i];
-1134   2            i++;
-1135   2        }
-1136   1        i=3;
-1137   1        send_data[24]=send_data[2];
-1138   1        while(i<24)
-1139   1          send_data[24]^= send_data[i++]; 
-1140   1        send_cmd_to_cardhead(&send_data);
-1141   1      }
-1142          //***//
-1143          
-1144          //******************************//
-1145          //name:cardhead_write_havepass
-1146          //discription:发送指令到卡头，写卡
-1147          //in:
-1148          //out:
-1149          void cardhead_write_havepass(unsigned char block,unsigned char *pass,unsigned char *indata)
-1150          {
-1151   1        //unsigned char send_data[25];
-1152   1        unsigned char i=0;
-1153   1        send_data[0]=0xaa;
-1154   1        send_data[1]=0x55;
-1155   1        send_data[2]=0x1a;
-1156   1        send_data[3]=0x22;
-1157   1        send_data[4]=0x00;
-1158   1        send_data[5]=block;
-1159   1        i=0;
-1160   1        while(i<6)
-1161   1            send_data[6+(i++)]=*pass++;
-1162   1      
-1163   1        i=0;
-1164   1        while(i<16)
-1165   1            send_data[12+(i++)]=*indata++;
-1166   1        i=3;
-1167   1        send_data[28]=send_data[2];
-1168   1        while(i<28)
-1169   1        send_data[28]^= send_data[i++];
-1170   1        send_cmd_to_cardhead(&send_data);
-1171   1      }
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 20  
+1110   1          while(i--)
+1111   1          {
+1112   2              SBUF=*in++;
+1113   2              while(!TI);
+1114   2              TI=0;
+1115   2          }
+1116   1          REN=1;  
+1117   1      }
+1118          //***//
+1119          
+1120          //******************************//
+1121          //name:verr
+1122          //discription:校验函数
+1123          //in:
+1124          //out:
+1125          bit verr_recevie_pc(void)
+1126          {
+1127   1        unsigned char i=2;
+1128   1        temp=receive_PC_data[1];
+1129   1        while(i<receive_PC_data[1])
+1130   1        {
+1131   2          temp^=receive_PC_data[i];
+1132   2          i++;
+1133   2        }
+1134   1        if(temp==receive_PC_data[receive_PC_data[1]]) return 1;
+1135   1        else return 0;
+1136   1      }
+1137          //***//
+1138          
+1139          //******************************//
+1140          //name:verr
+1141          //discription:校验函数
+1142          //in:
+1143          //out:
+1144          bit verr_recevie_cardhead(void)
+1145          {
+1146   1        unsigned char i=1;
+1147   1        temp1=receive_CARDHEAD_data[0];
+1148   1        while(i<(receive_CARDHEAD_data[2]+2))
+1149   1        {
+1150   2          temp1^=receive_CARDHEAD_data[i];
+1151   2          i++;
+1152   2        }
+1153   1        if(temp1==(~receive_CARDHEAD_data[receive_CARDHEAD_data[2]+2])) return 1;
+1154   1        else return 0;
+1155   1      }
+1156          //***//
+1157          
+1158          //******************************//
+1159          //name:cardhead_seek
+1160          //discription:发送指令到卡头，寻卡
+1161          //in:
+1162          //out:
+1163          void cardhead_seek(void)
+1164          {
+1165   1      //  unsigned char send_data[6];
+1166   1        send_data[0]=0xaa;
+1167   1        send_data[1]=0x55;
+1168   1        send_data[2]=0x03;
+1169   1        send_data[3]=0x20;
+1170   1        send_data[4]=0x00;
+1171   1        send_data[5]=0x23;
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 20  
 
-1172          //***//
-1173          
-1174          //******************************//
-1175          //name:cardhead_writepass
-1176          //discription:发送指令到卡头，写卡密码
-1177          //in:
-1178          //out:
-1179          void cardhead_writepass(unsigned char block,unsigned char *oldpass,unsigned char *newpass)
-1180          {
-1181   1        //unsigned char send_data[29];
-1182   1        unsigned char i=0;
-1183   1        send_data[0]=0xaa;
-1184   1        send_data[1]=0x55;
-1185   1        send_data[2]=0x1a;
-1186   1        send_data[3]=0x22;
-1187   1        send_data[4]=0x00;
-1188   1        send_data[5]=block;
-1189   1        i=0;
-1190   1        while(i<6)
-1191   1          send_data[6+(i++)]= *oldpass++;
-1192   1        i=0;
-1193   1        while(i<6)
-1194   1          send_data[12+(i++)]= *newpass++;
-1195   1          
-1196   1        send_data[18]=0xff;
-1197   1        send_data[19]=0x07;
-1198   1        send_data[20]=0x80;
-1199   1        send_data[21]=0x69;
-1200   1        
-1201   1        send_data[22]=0xff;
-1202   1        send_data[23]=0xff;
-1203   1        send_data[24]=0xff;
-1204   1        send_data[25]=0xff;
-1205   1        send_data[26]=0xff;
-1206   1        send_data[27]=0xff;
-1207   1      
-1208   1        i=3;
-1209   1        send_data[28]=send_data[2];
-1210   1        while(i<28)
-1211   1        send_data[28]^= send_data[i++];
-1212   1        send_cmd_to_cardhead(&send_data);
-1213   1      }
-1214          //***//
-1215          
-1216          //******************************//
-1217          //name:cardhead_write_havepass
-1218          //discription:发送指令到卡头，写卡
-1219          //in:
-1220          //out:
-1221          void cardhead_writecardheadpass(unsigned char addrl,unsigned char addrh,unsigned char *pass)
-1222          {
-1223   1        //unsigned char send_data[25];
-1224   1        unsigned char i=0;
-1225   1        send_data[0]=0xaa;
-1226   1        send_data[1]=0x55;
-1227   1        send_data[2]=0x0a;
-1228   1        send_data[3]=0x2b;
-1229   1        send_data[4]=addrl;//0x80
-1230   1        send_data[5]=addrh;//0x00
-1231   1        i=0;
-1232   1        while(i<6)
-1233   1            send_data[6+(i++)]=*pass++;
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 21  
+1172   1        send_cmd_to_cardhead(&send_data);
+1173   1      }
+1174          //***//
+1175          
+1176          //******************************//
+1177          //name:cardhead_read
+1178          //discription:发送指令到卡头，读卡
+1179          //in:
+1180          //out:
+1181          void cardhead_read(unsigned char block)
+1182          {
+1183   1        //unsigned char send_data[9];
+1184   1        unsigned char i=0;
+1185   1        send_data[0]=0xaa;
+1186   1        send_data[1]=0x55;
+1187   1        send_data[2]=0x06;
+1188   1        send_data[3]=0x21;
+1189   1        send_data[4]=0x02;
+1190   1        send_data[5]=block;
+1191   1        send_data[6]=0x80;
+1192   1        send_data[7]=0;
+1193   1        i=3;
+1194   1        send_data[8]=send_data[2];
+1195   1        while(i<8)
+1196   1        send_data[8]^=  send_data[i++];
+1197   1        send_cmd_to_cardhead(&send_data);
+1198   1      }
+1199          //***//
+1200          
+1201          //******************************//
+1202          //name:cardhead_read_havepass
+1203          //discription:发送指令到卡头，读卡
+1204          //in:
+1205          //out:
+1206          void cardhead_read_havepass(unsigned char block,unsigned char *pass)
+1207          {
+1208   1        //unsigned char send_data[9];
+1209   1        unsigned char i=0;
+1210   1        send_data[0]=0xaa;
+1211   1        send_data[1]=0x55;
+1212   1        send_data[2]=0x0a;
+1213   1        send_data[3]=0x21;
+1214   1        send_data[4]=0x00;
+1215   1        send_data[5]=block;
+1216   1        i=0;
+1217   1        while(i<6)
+1218   1            send_data[6+(i++)]=*pass++;
+1219   1        i=3;
+1220   1        send_data[12]=send_data[2];
+1221   1        while(i<12)
+1222   1        send_data[12]^= send_data[i++];
+1223   1        send_cmd_to_cardhead(&send_data);
+1224   1      }
+1225          //***//
+1226          
+1227          //******************************//
+1228          //name:cardhead_write
+1229          //discription:发送指令到卡头，写卡
+1230          //in:
+1231          //out:
+1232          void cardhead_write(unsigned char block,unsigned char *indata11)
+1233          {
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 21  
 
-1234   1        i=3;
-1235   1        send_data[12]=send_data[2];
-1236   1        while(i<12)
-1237   1        send_data[12]^= send_data[i++];
-1238   1        send_cmd_to_cardhead(&send_data);
-1239   1      }
-1240          //***//
-1241          
-1242          //******************************//
-1243          //name:cardhead_OPENorCLOSE
-1244          //discription:发送指令到卡头
-1245          //in:
-1246          //out:
-1247          void cardhead_OPENorCLOSE(unsigned char oc)
-1248          {
-1249   1        //unsigned char send_data[6];
-1250   1        unsigned char i=0;
-1251   1        send_data[0]=0xaa;
-1252   1        send_data[1]=0x55;
-1253   1        send_data[2]=0x03;
-1254   1        send_data[3]=0x11;
-1255   1        send_data[4]=oc;
-1256   1        i=3;
-1257   1        send_data[5]=send_data[2];
-1258   1        while(i<5)
-1259   1        send_data[5]^=  send_data[i++];
-1260   1      //  send_data[8]=~send_data[8];
-1261   1        send_cmd_to_cardhead(&send_data);
-1262   1      }
-1263          //***//
-1264          
-1265          //******************************//
-1266          //name:send_cmd_to_cardhead
-1267          //discription:发送指令到卡头
-1268          //in:
-1269          //out:
-1270          void send_cmd_to_cardhead(unsigned char *in)
-1271          {
-1272   1        unsigned char i=0;
-1273   1        S2CON&=0xef;
-1274   1        S2CON&=0xfd;
-1275   1        while(i<(in[2]+3))
-1276   1        {   
-1277   2          S2BUF=in[i++];
-1278   2          while((S2CON&0x02)!=0x02);
-1279   2          S2CON&=0xfd;
-1280   2          LED8=!LED8;
-1281   2        }
-1282   1        S2CON&=0xfc;
-1283   1        S2CON|=0x10;
-1284   1      }
-1285          //***//
-1286          
+1234   1        //unsigned char send_data[25];
+1235   1        unsigned char i=0;
+1236   1        send_data[0]=0xaa;
+1237   1        send_data[1]=0x55;
+1238   1        send_data[2]=0x16;
+1239   1        send_data[3]=0x22;
+1240   1        send_data[4]=0x02;
+1241   1        send_data[5]=block;
+1242   1        send_data[6]=0x80;
+1243   1        send_data[7]=0; 
+1244   1        i=0;
+1245   1        while(i<16)
+1246   1        {
+1247   2            send_data[8+i]=indata11[i];
+1248   2            i++;
+1249   2        }
+1250   1        i=3;
+1251   1        send_data[24]=send_data[2];
+1252   1        while(i<24)
+1253   1          send_data[24]^= send_data[i++]; 
+1254   1        send_cmd_to_cardhead(&send_data);
+1255   1      }
+1256          //***//
+1257          
+1258          //******************************//
+1259          //name:cardhead_write_havepass
+1260          //discription:发送指令到卡头，写卡
+1261          //in:
+1262          //out:
+1263          void cardhead_write_havepass(unsigned char block,unsigned char *pass,unsigned char *indata)
+1264          {
+1265   1        //unsigned char send_data[25];
+1266   1        unsigned char i=0;
+1267   1        send_data[0]=0xaa;
+1268   1        send_data[1]=0x55;
+1269   1        send_data[2]=0x1a;
+1270   1        send_data[3]=0x22;
+1271   1        send_data[4]=0x00;
+1272   1        send_data[5]=block;
+1273   1        i=0;
+1274   1        while(i<6)
+1275   1            send_data[6+(i++)]=*pass++;
+1276   1      
+1277   1        i=0;
+1278   1        while(i<16)
+1279   1            send_data[12+(i++)]=*indata++;
+1280   1        i=3;
+1281   1        send_data[28]=send_data[2];
+1282   1        while(i<28)
+1283   1        send_data[28]^= send_data[i++];
+1284   1        send_cmd_to_cardhead(&send_data);
+1285   1      }
+1286          //***//
 1287          
 1288          //******************************//
-1289          //name:verr
-1290          //discription:校验函数
+1289          //name:cardhead_writepass
+1290          //discription:发送指令到卡头，写卡密码
 1291          //in:
 1292          //out:
-1293          //bit SAMPLE(void)
-1294          //{
-1295          
-C51 COMPILER V9.00   STC_USER                                                              03/15/2017 16:59:07 PAGE 22  
+1293          void cardhead_writepass(unsigned char block,unsigned char *oldpass,unsigned char *newpass)
+1294          {
+1295   1        //unsigned char send_data[29];
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 22  
 
-1296          //}
-1297          //***//
-1298          
-1299          
-1300          
+1296   1        unsigned char i=0;
+1297   1        send_data[0]=0xaa;
+1298   1        send_data[1]=0x55;
+1299   1        send_data[2]=0x1a;
+1300   1        send_data[3]=0x22;
+1301   1        send_data[4]=0x00;
+1302   1        send_data[5]=block;
+1303   1        i=0;
+1304   1        while(i<6)
+1305   1          send_data[6+(i++)]= *oldpass++;
+1306   1        i=0;
+1307   1        while(i<6)
+1308   1          send_data[12+(i++)]= *newpass++;
+1309   1          
+1310   1        send_data[18]=0xff;
+1311   1        send_data[19]=0x07;
+1312   1        send_data[20]=0x80;
+1313   1        send_data[21]=0x69;
+1314   1        
+1315   1        send_data[22]=0xff;
+1316   1        send_data[23]=0xff;
+1317   1        send_data[24]=0xff;
+1318   1        send_data[25]=0xff;
+1319   1        send_data[26]=0xff;
+1320   1        send_data[27]=0xff;
+1321   1      
+1322   1        i=3;
+1323   1        send_data[28]=send_data[2];
+1324   1        while(i<28)
+1325   1        send_data[28]^= send_data[i++];
+1326   1        send_cmd_to_cardhead(&send_data);
+1327   1      }
+1328          //***//
+1329          
+1330          //******************************//
+1331          //name:cardhead_write_havepass
+1332          //discription:发送指令到卡头，写卡
+1333          //in:
+1334          //out:
+1335          void cardhead_writecardheadpass(unsigned char addrl,unsigned char addrh,unsigned char *pass)
+1336          {
+1337   1        //unsigned char send_data[25];
+1338   1        unsigned char i=0;
+1339   1        send_data[0]=0xaa;
+1340   1        send_data[1]=0x55;
+1341   1        send_data[2]=0x0a;
+1342   1        send_data[3]=0x2b;
+1343   1        send_data[4]=addrl;//0x80
+1344   1        send_data[5]=addrh;//0x00
+1345   1        i=0;
+1346   1        while(i<6)
+1347   1            send_data[6+(i++)]=*pass++;
+1348   1        i=3;
+1349   1        send_data[12]=send_data[2];
+1350   1        while(i<12)
+1351   1        send_data[12]^= send_data[i++];
+1352   1        send_cmd_to_cardhead(&send_data);
+1353   1      }
+1354          //***//
+1355          
+1356          //******************************//
+1357          //name:cardhead_OPENorCLOSE
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 23  
+
+1358          //discription:发送指令到卡头
+1359          //in:
+1360          //out:
+1361          void cardhead_OPENorCLOSE(unsigned char oc)
+1362          {
+1363   1        //unsigned char send_data[6];
+1364   1        unsigned char i=0;
+1365   1        send_data[0]=0xaa;
+1366   1        send_data[1]=0x55;
+1367   1        send_data[2]=0x03;
+1368   1        send_data[3]=0x11;
+1369   1        send_data[4]=oc;
+1370   1        i=3;
+1371   1        send_data[5]=send_data[2];
+1372   1        while(i<5)
+1373   1        send_data[5]^=  send_data[i++];
+1374   1      //  send_data[8]=~send_data[8];
+1375   1        send_cmd_to_cardhead(&send_data);
+1376   1      }
+1377          //***//
+1378          
+1379          //******************************//
+1380          //name:send_cmd_to_cardhead
+1381          //discription:发送指令到卡头
+1382          //in:
+1383          //out:
+1384          void send_cmd_to_cardhead(unsigned char *in)
+1385          {
+1386   1        unsigned char i=0;
+1387   1        S2CON&=0xef;
+1388   1        S2CON&=0xfd;
+1389   1        while(i<(in[2]+3))
+1390   1        {   
+1391   2          S2BUF=in[i++];
+1392   2          while((S2CON&0x02)!=0x02);
+1393   2          S2CON&=0xfd;
+1394   2          LED8=!LED8;
+1395   2        }
+1396   1        S2CON&=0xfc;
+1397   1        S2CON|=0x10;
+1398   1      }
+1399          //***//
+1400          
+1401          
+1402          //******************************//
+1403          //name:verr
+1404          //discription:校验函数
+1405          //in:
+1406          //out:
+1407          //bit SAMPLE(void)
+1408          //{
+1409          
+1410          //}
+1411          //***//
+1412          
+1413          
+1414          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   5594    ----
+   CODE SIZE        =   5959    ----
    CONSTANT SIZE    =   ----    ----
+C51 COMPILER V9.00   STC_USER                                                              03/16/2017 10:36:28 PAGE 24  
+
    XDATA SIZE       =    108    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      8     142
+   DATA SIZE        =      8     190
    IDATA SIZE       =   ----    ----
-   BIT SIZE         =   ----    ----
+   BIT SIZE         =      1    ----
 END OF MODULE INFORMATION.
 
 

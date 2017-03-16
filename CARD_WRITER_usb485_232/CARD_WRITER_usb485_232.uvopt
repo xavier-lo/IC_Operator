@@ -185,7 +185,7 @@
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>5</ColumnNumber>
+      <ColumnNumber>7</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
       <TopLine>2</TopLine>
       <CurrentLine>22</CurrentLine>
@@ -217,10 +217,10 @@
       <FileType>1</FileType>
       <tvExp>1</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>0</ColumnNumber>
+      <ColumnNumber>6</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>112</TopLine>
-      <CurrentLine>29</CurrentLine>
+      <TopLine>37</TopLine>
+      <CurrentLine>91</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\STC_ISR.C</PathWithFileName>
       <FilenameWithoutPath>STC_ISR.C</FilenameWithoutPath>
@@ -233,10 +233,10 @@
       <FileType>1</FileType>
       <tvExp>1</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>0</ColumnNumber>
+      <ColumnNumber>36</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>253</TopLine>
-      <CurrentLine>188</CurrentLine>
+      <TopLine>108</TopLine>
+      <CurrentLine>124</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\STC_USER.C</PathWithFileName>
       <FilenameWithoutPath>STC_USER.C</FilenameWithoutPath>

@@ -34,6 +34,7 @@ void Read_1block_Card_havepass(unsigned char block,unsigned char *inpass);
 void Write_1block_Card_havepass(unsigned char block,unsigned char *indata0);
 void Read_1block_Card_nopass(unsigned char block);
 void Write_1block_Card_nopass(unsigned char block,unsigned char *indata0);
+void Batch_Write_Card(unsigned char block,unsigned char *indata1,unsigned char *last_serial);
 
 ////******IC¿¨ÃüÁî¶¨Òå***********//
 //typedef enum IC_CMD

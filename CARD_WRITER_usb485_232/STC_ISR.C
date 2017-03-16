@@ -37,7 +37,8 @@ extern unsigned char receive_cardhead_success;//接收卡头数据成功标志
 extern unsigned char xdata received_CARDHEAD_data[28];//接收卡头数据成功	
 extern unsigned char receive_card_state;//接收卡数据状态	
 extern unsigned char xdata send_pc_data[50];
-extern unsigned char send_pc_count;
+extern unsigned char send_pc_count;	
+extern bit is_batch;//批量处理标志	
 /**/
 
 
@@ -69,9 +70,9 @@ void TIME0_ISR()interrupt 1 using 1
 			start_receive_pc=0;
 			for(i=0;i<48;i++)
 			{
-				received_PC_data[i]=0;
-				receive_pc_success=0;
+				received_PC_data[i]=0;				
 			}
+			receive_pc_success=0;
 		}
 	}
 	if(receive_card_state==0)
@@ -85,9 +86,9 @@ void TIME0_ISR()interrupt 1 using 1
 			receive_cardhead_overtime_count=0;
 			for(i=0;i<28;i++)
 			{
-				received_CARDHEAD_data[i]=0;
-				receive_cardhead_success=0;
-			}		
+				received_CARDHEAD_data[i]=0;				
+			}	
+			receive_cardhead_success=0;	
 		}
 	}
 
@@ -126,17 +127,18 @@ void USART1_ISR(void)interrupt 4 using 2
 				{LED7=!LED7;
 					for(i=0;i<48;i++)
 					{
-						received_PC_data[i]=receive_PC_data[i+1];
-						receive_pc_success=1;
+						received_PC_data[i]=receive_PC_data[i+1];						
 					}
+					receive_pc_success=1;
+					if(received_PC_data[1]==0x07) is_batch=0;
 				}else
 				{
 					int i=0;
 					for(i=0;i<48;i++)
 					{
-						received_PC_data[i]=0;
-						receive_pc_success=0;
-					}					
+						received_PC_data[i]=0;						
+					}
+					receive_pc_success=0;					
 				}
 				start_receive_pc=0;
 			}
@@ -146,9 +148,9 @@ void USART1_ISR(void)interrupt 4 using 2
 			start_receive_pc=0;
 			for(i=0;i<20;i++)
 			{
-				received_PC_data[i]=0;
-				receive_pc_success=0;
-			}			
+				received_PC_data[i]=0;				
+			}	
+			receive_pc_success=0;		
 		}
 		
 		

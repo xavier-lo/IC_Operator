@@ -21,6 +21,7 @@ unsigned char temp,temp1,temp2,verr_temp;
 unsigned char xdata send_data[30];
 volatile unsigned char xdata send_pc_data[50];
 volatile unsigned char send_pc_count=0;
+volatile bit is_batch=0;//批量处理标志	
 /***/
 
 /*****定义局部位变量*****/
@@ -48,30 +49,79 @@ extern bit receive_pc_success;//接收PC数据成功标志
 //out:
 void action(void)
 {
+	char ii=0;
+	unsigned char last_serial[4];
 	if(receive_pc_success)
 	{
 		receive_pc_success=0;
 		switch(received_PC_data[1])
 		{
-			case 0x00:	Seek_Card();
+			case 0x00:	
+					Seek_Card();
+					send_to_pc(&send_pc_data);	
 					break;	
-			case 0x02:	Read_2block_Card_nopass(received_PC_data[2]);
+			case 0x02:	
+					Read_2block_Card_nopass(received_PC_data[2]);
+					send_to_pc(&send_pc_data);	
 					break;
-			case 0x12:	Write_2block_Card_nopass(received_PC_data[2],&received_PC_data);
+			case 0x12:	
+					Write_2block_Card_nopass(received_PC_data[2],&received_PC_data);
+					send_to_pc(&send_pc_data);	
 					break;
-			case 0x05:	Change_Password(received_PC_data[2],&received_PC_data);
+			case 0x05:	
+					Change_Password(received_PC_data[2],&received_PC_data);
+					send_to_pc(&send_pc_data);	
 					break;
-			case 0x22:	Change_CardHead_Password(&received_PC_data);
+			case 0x22:	
+					Change_CardHead_Password(&received_PC_data);
+					send_to_pc(&send_pc_data);	
 					break;
-			case 0x03:	Read_1block_Card_havepass(received_PC_data[2],&received_PC_data);
+			case 0x03:	
+					Read_1block_Card_havepass(received_PC_data[2],&received_PC_data);
+					send_to_pc(&send_pc_data);	
 					break;	
-			case 0x04:	Write_1block_Card_havepass(received_PC_data[2],&received_PC_data);
+			case 0x04:	
+					Write_1block_Card_havepass(received_PC_data[2],&received_PC_data);
+					send_to_pc(&send_pc_data);	
 					break;
-			case 0x01:	Read_1block_Card_nopass(received_PC_data[2]);
+			case 0x01:	
+					Read_1block_Card_nopass(received_PC_data[2]);
+					send_to_pc(&send_pc_data);	
 					break;
-			case 0x11:	Write_1block_Card_nopass(received_PC_data[2],&received_PC_data);
+			case 0x11:	
+					Write_1block_Card_nopass(received_PC_data[2],&received_PC_data);
+					send_to_pc(&send_pc_data);	
 					break;
-			case 0x06:
+			case 0x06:					
+					is_batch=1;
+					while(is_batch)
+					{
+							Seek_Card();
+							ii=0;
+							while(ii<4)
+							{
+									if(last_serial[ii]==send_pc_data[ii+4]) ii++;
+									else break;
+							}
+							if(ii!=4)
+							{
+									ii=0;
+									while(ii<4)
+									{
+											last_serial[ii]=send_pc_data[ii+4];
+											ii++;
+									}								
+									Batch_Write_Card(received_PC_data[2],&received_PC_data,&last_serial);
+									send_to_pc(&send_pc_data);								
+							}
+					}	
+					send_pc_data[0]=0xbe;
+					send_pc_data[1]=0x04;
+					send_pc_data[2]=0x07;
+					send_pc_data[3]=0x00;
+					send_pc_data[4]=0x03;
+					send_pc_data[5]=0xe0;
+					send_to_pc(&send_pc_data);
 					break;
 			default:	break;
 		}
@@ -156,7 +206,7 @@ void Seek_Card(void)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=1;
-					send_to_pc(&send_pc_data);					
+					//send_to_pc(&send_pc_data);					
 			}
 				else if(received_CARDHEAD_data[1]==0xdf)	
 			{
@@ -179,11 +229,75 @@ void Seek_Card(void)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;
-					send_to_pc(&send_pc_data);					
+					//send_to_pc(&send_pc_data);					
 			}			
 }
 //***//
 
+
+//******************************//
+//name:Batch_Write_Card
+//discription:批量写卡 A密
+//in:
+//out:
+void Batch_Write_Card(unsigned char block,unsigned char *indata1,unsigned char *last_serial)
+{
+		unsigned char indata2[35];
+		unsigned char i=0;
+		while(i<12)
+		{
+				indata2[i+3]=indata1[35+i];
+				i++;
+		}
+		Change_Password(block+2,&indata2);
+		if(send_pc_data[2]==0x05)
+		{
+				i=0;
+				while(i<35)
+				{
+						indata2[i]=indata1[i];
+						i++;
+				}
+				Write_2block_Card_nopass(block,&indata2);
+				if(send_pc_data[2]==0x12)
+				{
+						i=0;
+						send_pc_data[0]=0xbe;
+						send_pc_data[1]=0x08;
+						send_pc_data[2]=0x06;
+						send_pc_data[3]=block;
+						while(i<4)
+						{
+								send_pc_data[4+i]=last_serial[i];
+								i++;
+						}
+						i=2;
+						send_pc_data[8]=send_pc_data[1];
+						while(i<8)
+						send_pc_data[8]^=send_pc_data[i++];
+						send_pc_data[9]=0xe0;			
+						LED1=1;	
+						return;
+				}
+		}
+		i=0;
+		send_pc_data[0]=0xbe;
+		send_pc_data[1]=0x08;
+		send_pc_data[2]=0x86;
+		send_pc_data[3]=block;
+		while(i<4)
+		{
+				send_pc_data[4+i]=00;
+				i++;
+		}
+		i=2;
+		send_pc_data[8]=send_pc_data[1];
+		while(i<8)
+		send_pc_data[8]^=send_pc_data[i++];
+		send_pc_data[9]=0xe0;			
+		LED1=0;
+}
+//***//
 
 
 
@@ -224,7 +338,7 @@ void Read_1block_Card_nopass(unsigned char block)
 //								send_pc_count=0;
 //								SBUF=send_pc_data[send_pc_count++];
 						LED1=1;
-						send_to_pc(&send_pc_data);
+//						send_to_pc(&send_pc_data);
 						return;								
 
 				}
@@ -247,7 +361,7 @@ void Read_1block_Card_nopass(unsigned char block)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;			
-					send_to_pc(&send_pc_data);					
+//					send_to_pc(&send_pc_data);					
 			}
 				else if(received_CARDHEAD_data[1]==0xdf)	
 			{					
@@ -270,7 +384,7 @@ void Read_1block_Card_nopass(unsigned char block)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;
-					send_to_pc(&send_pc_data);
+//					send_to_pc(&send_pc_data);
 			}	
 }
 //***//
@@ -332,7 +446,7 @@ void Write_1block_Card_nopass(unsigned char block,unsigned char *indata0)
 		//								send_pc_count=0;
 		//								SBUF=send_pc_data[send_pc_count++];
 										LED1=1;
-										send_to_pc(&send_pc_data);
+//										send_to_pc(&send_pc_data);
 										return;									
 								}									
 						}
@@ -356,7 +470,7 @@ void Write_1block_Card_nopass(unsigned char block,unsigned char *indata0)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;			
-					send_to_pc(&send_pc_data);					
+//					send_to_pc(&send_pc_data);					
 			}
 				else if(received_CARDHEAD_data[1]==0xdf)	
 			{					
@@ -379,7 +493,7 @@ void Write_1block_Card_nopass(unsigned char block,unsigned char *indata0)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;
-					send_to_pc(&send_pc_data);
+//					send_to_pc(&send_pc_data);
 			}	
 }
 //***//
@@ -433,7 +547,7 @@ void Read_2block_Card_nopass(unsigned char block)
 //								send_pc_count=0;
 //								SBUF=send_pc_data[send_pc_count++];
 								LED1=1;
-								send_to_pc(&send_pc_data);
+//								send_to_pc(&send_pc_data);
 								return;								
 						}	
 				}
@@ -456,7 +570,7 @@ void Read_2block_Card_nopass(unsigned char block)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;			
-					send_to_pc(&send_pc_data);					
+//					send_to_pc(&send_pc_data);					
 			}
 				else if(received_CARDHEAD_data[1]==0xdf)	
 			{					
@@ -479,7 +593,7 @@ void Read_2block_Card_nopass(unsigned char block)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;
-					send_to_pc(&send_pc_data);
+//					send_to_pc(&send_pc_data);
 			}			
 }
 //***//
@@ -564,7 +678,7 @@ void Write_2block_Card_nopass(unsigned char block,unsigned char *indata)
 //														send_pc_count=0;
 //														SBUF=send_pc_data[send_pc_count++];
 														LED1=1;
-														send_to_pc(&send_pc_data);
+//														send_to_pc(&send_pc_data);
 														return;														
 												}							
 										}	
@@ -591,7 +705,7 @@ void Write_2block_Card_nopass(unsigned char block,unsigned char *indata)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;
-					send_to_pc(&send_pc_data);					
+//					send_to_pc(&send_pc_data);					
 			}
 				else if(received_CARDHEAD_data[1]==0xdf)	
 			{					
@@ -614,7 +728,7 @@ void Write_2block_Card_nopass(unsigned char block,unsigned char *indata)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;
-					send_to_pc(&send_pc_data);
+//					send_to_pc(&send_pc_data);
 			}			
 }
 //***//
@@ -664,7 +778,7 @@ void Change_Password(unsigned char block,unsigned char *inpass)
 //								send_pc_count=0;
 //								SBUF=send_pc_data[send_pc_count++];
 						LED1=1;
-						send_to_pc(&send_pc_data);
+//						send_to_pc(&send_pc_data);
 						return;								
 
 				}
@@ -681,7 +795,7 @@ void Change_Password(unsigned char block,unsigned char *inpass)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;			
-					send_to_pc(&send_pc_data);					
+//					send_to_pc(&send_pc_data);					
 			}
 				else if(received_CARDHEAD_data[1]==0xdf)	
 			{					
@@ -698,7 +812,7 @@ void Change_Password(unsigned char block,unsigned char *inpass)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;
-					send_to_pc(&send_pc_data);
+//					send_to_pc(&send_pc_data);
 			}			
 }
 //***//
@@ -743,7 +857,7 @@ void Change_CardHead_Password(unsigned char *inpass)
 //								send_pc_count=0;
 //								SBUF=send_pc_data[send_pc_count++];
 						LED1=1;
-						send_to_pc(&send_pc_data);
+//						send_to_pc(&send_pc_data);
 						return;								
 
 				}
@@ -767,7 +881,7 @@ void Change_CardHead_Password(unsigned char *inpass)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;			
-					send_to_pc(&send_pc_data);					
+//					send_to_pc(&send_pc_data);					
 
 }
 //***//
@@ -816,7 +930,7 @@ void Read_1block_Card_havepass(unsigned char block,unsigned char *inpass)
 //								send_pc_count=0;
 //								SBUF=send_pc_data[send_pc_count++];
 						LED1=1;
-						send_to_pc(&send_pc_data);
+//						send_to_pc(&send_pc_data);
 						return;								
 
 				}
@@ -839,7 +953,7 @@ void Read_1block_Card_havepass(unsigned char block,unsigned char *inpass)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;			
-					send_to_pc(&send_pc_data);					
+//					send_to_pc(&send_pc_data);					
 			}
 				else if(received_CARDHEAD_data[1]==0xdf)	
 			{					
@@ -862,7 +976,7 @@ void Read_1block_Card_havepass(unsigned char block,unsigned char *inpass)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;
-					send_to_pc(&send_pc_data);
+//					send_to_pc(&send_pc_data);
 			}	
 }
 //***//
@@ -931,7 +1045,7 @@ void Write_1block_Card_havepass(unsigned char block,unsigned char *indata0)
 		//								send_pc_count=0;
 		//								SBUF=send_pc_data[send_pc_count++];
 										LED1=1;
-										send_to_pc(&send_pc_data);
+//										send_to_pc(&send_pc_data);
 										return;									
 								}									
 						}
@@ -955,7 +1069,7 @@ void Write_1block_Card_havepass(unsigned char block,unsigned char *indata0)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;			
-					send_to_pc(&send_pc_data);					
+//					send_to_pc(&send_pc_data);					
 			}
 				else if(received_CARDHEAD_data[1]==0xdf)	
 			{					
@@ -978,7 +1092,7 @@ void Write_1block_Card_havepass(unsigned char block,unsigned char *indata0)
 //					send_pc_count=0;
 //					SBUF=send_pc_data[send_pc_count++];
 					LED1=0;
-					send_to_pc(&send_pc_data);
+//					send_to_pc(&send_pc_data);
 			}	
 }
 //***//
